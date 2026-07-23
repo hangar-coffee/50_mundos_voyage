@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-[#FAF8F5] text-[#1C2B2C]">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>50 Mundos Voyage - Cotizador & Planner</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        voyage: {
+                            cream: '#FAF8F5',
+                            paper: '#F2EFEA',
+                            white: '#FFFFFF',
+                            teal: '#2C4445',
+                            darkteal: '#1C2B2C',
+                            sage: '#526E6C',
+                            sand: '#D6BA96',
+                            sandlight: '#EFE3D3',
+                            terracotta: '#C8401C',
+                            gold: '#E5B334',
+                            sky: '#D4EAE7',
+                            border: '#E2D8C8'
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Montserrat', 'sans-serif'],
+                        serif: ['"Bodoni Moda"', 'serif']
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Librerías Externas -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    
+    <!-- CSS Modulado Propio -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+
+<body class="h-full flex flex-col bg-voyage-cream text-voyage-darkteal overflow-x-hidden">
+
+    <!-- Header Principal -->
+    <header class="no-print bg-white/95 backdrop-blur border-b border-voyage-border sticky top-0 z-50 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex flex-col md:flex-row items-center justify-between gap-4">
+            
+            <div class="flex items-center space-x-3">
+                <div class="h-12 flex items-center justify-center">
+                    <img src="assets/logo_50_mundos_marca.png" alt="50 Mundos Voyage" class="h-12 w-auto object-contain" onerror="this.onerror=null; this.src='https://placehold.co/180x50/FAF8F5/2C4445?text=50+MUNDOS+VOYAGE';">
+                </div>
+                <div class="border-l border-voyage-sand/80 pl-3">
+                    <h1 class="text-sm font-bold tracking-wider text-voyage-teal uppercase font-serif-title">
+                        50 MUNDOS VOYAGE
+                    </h1>
+                    <p class="text-[10px] text-voyage-sage tracking-widest font-semibold uppercase">Viaja despacio, disfruta la aventura del momento</p>
+                </div>
+            </div>
+
+            <!-- Navegación por Pestañas -->
+            <nav class="flex flex-wrap justify-center space-x-1 bg-voyage-paper p-1 rounded-xl border border-voyage-border">
+                <button onclick="switchTab('upload')" id="nav-upload" class="tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg transition-all text-voyage-teal bg-white border border-voyage-border shadow-sm">
+                    <i class="fa-solid fa-file-excel mr-1.5 text-voyage-terracotta"></i> 1. Archivo Excel
+                </button>
+                <button onclick="switchTab('data')" id="nav-data" class="tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-voyage-teal transition-all">
+                    <i class="fa-solid fa-database mr-1.5 text-voyage-sage"></i> 2. Datos Extraídos
+                </button>
+                <button onclick="switchTab('maps')" id="nav-maps" class="tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-voyage-teal transition-all">
+                    <i class="fa-solid fa-map-location-dot mr-1.5 text-voyage-sage"></i> 3. Ruta & Mapas
+                </button>
+                <button onclick="switchTab('custom')" id="nav-custom" class="tab-btn px-3.5 py-1.5 text-xs font-semibold rounded-lg text-slate-600 hover:text-voyage-teal transition-all">
+                    <i class="fa-solid fa-user-gear mr-1.5 text-voyage-sage"></i> 4. Notas & Fotos
+                </button>
+                <button onclick="switchTab('client')" id="nav-client" class="tab-btn px-4 py-1.5 text-xs font-bold rounded-lg bg-voyage-terracotta text-white hover:bg-rose-800 transition-all shadow">
+                    <i class="fa-solid fa-file-invoice-dollar mr-1.5"></i> 5. Cotización Final
+                </button>
+            </nav>
+
+            <div class="flex items-center space-x-2">
+                <button id="toggleCostsBtn" onclick="toggleCostsVisibility()" class="no-print px-3 py-1.5 text-xs bg-white hover:bg-voyage-paper text-voyage-teal rounded-lg border border-voyage-border transition flex items-center gap-1.5 font-semibold shadow-sm">
+                    <i class="fa-solid fa-eye-slash text-voyage-terracotta" id="toggleCostsIcon"></i>
+                    <span id="toggleCostsLabel">Modo viejero</span>
+                </button>
+                <button onclick="window.print()" class="no-print px-3 py-1.5 text-xs bg-voyage-teal hover:bg-voyage-darkteal text-white rounded-lg transition flex items-center gap-1.5 font-semibold shadow">
+                    <i class="fa-solid fa-print"></i> Imprimir / PDF
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8">
+
+        <!-- TAB 1: SUBIR EXCEL -->
+        <section id="tab-upload" class="tab-content space-y-6">
+            <div class="bg-white border border-voyage-border rounded-2xl p-6 sm:p-10 shadow-md text-center relative overflow-hidden">
+                <!-- Ilustración sutil en la cabecera de carga (Globo y Nube) -->
+                <img src="assets/ELEMENTOS-MARCA-04.png" class="absolute -top-3 -right-3 w-24 h-auto opacity-20 pointer-events-none" onerror="this.style.display='none'">
+
+                <div class="max-w-xl mx-auto space-y-4 relative z-10">
+                    <div class="w-16 h-16 bg-voyage-sky text-voyage-teal rounded-2xl flex items-center justify-center mx-auto text-2xl border border-voyage-sage/30 shadow-sm">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                    </div>
+                    <h2 class="text-2xl font-bold font-serif-title text-voyage-teal tracking-wide">Cargar Plantilla de Viaje</h2>
+                    <p class="text-xs text-slate-600 leading-relaxed">
+                        Sube tu plantilla Excel para procesar automáticamente <b>Personas, Destinos, Vuelos, Hospedaje, Actividades e Itinerario</b>.
+                    </p>
+                    
+                    <div class="pt-4">
+                        <label class="cursor-pointer inline-flex items-center justify-center px-6 py-8 border-2 border-dashed border-voyage-sand hover:border-voyage-terracotta rounded-xl bg-voyage-cream hover:bg-white transition-all group w-full shadow-inner">
+                            <input type="file" id="excelFileInput" accept=".xlsx, .xls" class="hidden" onchange="handleFileUpload(event)">
+                            <div class="space-y-2 text-center">
+                                <i class="fa-solid fa-file-excel text-voyage-terracotta text-4xl group-hover:scale-110 transition-transform"></i>
+                                <p class="text-sm font-bold text-voyage-teal">Haz clic aquí para seleccionar tu plantilla Excel</p>
+                                <p class="text-xs text-voyage-sage font-medium">Formato compatible .xlsx y .xls</p>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div id="uploadSummary" class="hidden bg-emerald-50 border border-emerald-200 rounded-xl p-4 text-emerald-900 text-sm flex items-center justify-between shadow-sm">
+                <div class="flex items-center gap-3">
+                    <i class="fa-solid fa-circle-check text-xl text-emerald-600"></i>
+                    <div>
+                        <p class="font-bold" id="loadedFileName">Archivo procesado correctamente</p>
+                        <p class="text-xs text-emerald-700" id="loadedSheetsCount">Se extrajeron los datos correctamente.</p>
+                    </div>
+                </div>
+                <button onclick="switchTab('data')" class="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-semibold transition">
+                    Ver Información <i class="fa-solid fa-arrow-right ml-1"></i>
+                </button>
+            </div>
+        </section>
+
+        <!-- TAB 2: DATOS EXTRAÍDOS -->
+        <section id="tab-data" class="tab-content hidden space-y-6">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-bold font-serif-title text-voyage-teal flex items-center gap-2">
+                        <i class="fa-solid fa-table text-voyage-terracotta"></i> Información Extraída de la Plantilla
+                    </h2>
+                    <p class="text-xs text-slate-600">Revisa los datos leídos de cada hoja de tu Excel.</p>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs bg-white text-voyage-teal px-3 py-1 rounded-full border border-voyage-border font-semibold shadow-sm" id="costModeBadge">Modo: Solo Cliente</span>
+                    <span class="text-xs bg-voyage-paper text-slate-700 px-3 py-1 rounded-full border border-voyage-border font-mono" id="dataStatusBadge">Esperando Archivo</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <!-- Destinos -->
+                <div class="bg-white border border-voyage-border rounded-xl p-4 space-y-3 shadow-sm">
+                    <h3 class="text-xs font-bold text-voyage-teal uppercase tracking-wider flex items-center justify-between font-serif-title">
+                        <span><i class="fa-solid fa-location-dot mr-2 text-voyage-terracotta"></i>Destinos (<span id="count-destinos">0</span>)</span>
+                        <span class="text-[10px] font-sans font-normal text-slate-500">Pestaña: Destinos</span>
+                    </h3>
+                    <div class="overflow-x-auto max-h-52">
+                        <table class="w-full text-xs text-left text-slate-700">
+                            <thead class="text-voyage-teal bg-voyage-paper uppercase text-[10px] font-bold border-b border-voyage-border">
+                                <tr>
+                                    <th class="p-2">País</th>
+                                    <th class="p-2">Ciudad</th>
+                                    <th class="p-2">Llegada</th>
+                                    <th class="p-2">Partida</th>
+                                    <th class="p-2">Días</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-destinos-body" class="divide-y divide-voyage-border"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Personas -->
+                <div class="bg-white border border-voyage-border rounded-xl p-4 space-y-3 shadow-sm">
+                    <h3 class="text-xs font-bold text-voyage-teal uppercase tracking-wider flex items-center justify-between font-serif-title">
+                        <span><i class="fa-solid fa-users mr-2 text-voyage-sage"></i>Pasajeros / Personas (<span id="count-personas">0</span>)</span>
+                        <span class="text-[10px] font-sans font-normal text-slate-500">Pestaña: Personas</span>
+                    </h3>
+                    <div class="overflow-x-auto max-h-52">
+                        <table class="w-full text-xs text-left text-slate-700">
+                            <thead class="text-voyage-teal bg-voyage-paper uppercase text-[10px] font-bold border-b border-voyage-border">
+                                <tr>
+                                    <th class="p-2">Nombre</th>
+                                    <th class="p-2">Edad</th>
+                                    <th class="p-2">Categoría</th>
+                                    <th class="p-2">Grupo</th>
+                                    <th class="p-2">Nivel</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-personas-body" class="divide-y divide-voyage-border"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Vuelos -->
+                <div class="bg-white border border-voyage-border rounded-xl p-4 space-y-3 shadow-sm">
+                    <h3 class="text-xs font-bold text-voyage-teal uppercase tracking-wider flex items-center justify-between font-serif-title">
+                        <span><i class="fa-solid fa-plane mr-2 text-voyage-terracotta"></i>Vuelos (<span id="count-vuelos">0</span>)</span>
+                        <span class="text-[10px] font-sans font-normal text-slate-500">Pestaña: Vuelos</span>
+                    </h3>
+                    <div class="overflow-x-auto max-h-52">
+                        <table class="w-full text-xs text-left text-slate-700">
+                            <thead class="text-voyage-teal bg-voyage-paper uppercase text-[10px] font-bold border-b border-voyage-border" id="table-vuelos-head"></thead>
+                            <tbody id="table-vuelos-body" class="divide-y divide-voyage-border"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Hospedaje -->
+                <div class="bg-white border border-voyage-border rounded-xl p-4 space-y-3 shadow-sm">
+                    <h3 class="text-xs font-bold text-voyage-teal uppercase tracking-wider flex items-center justify-between font-serif-title">
+                        <span><i class="fa-solid fa-hotel mr-2 text-voyage-sage"></i>Hospedaje (<span id="count-hospedaje">0</span>)</span>
+                        <span class="text-[10px] font-sans font-normal text-slate-500">Pestaña: Hospedaje</span>
+                    </h3>
+                    <div class="overflow-x-auto max-h-52">
+                        <table class="w-full text-xs text-left text-slate-700">
+                            <thead class="text-voyage-teal bg-voyage-paper uppercase text-[10px] font-bold border-b border-voyage-border" id="table-hospedaje-head"></thead>
+                            <tbody id="table-hospedaje-body" class="divide-y divide-voyage-border"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Actividades -->
+                <div class="bg-white border border-voyage-border rounded-xl p-4 space-y-3 lg:col-span-2 shadow-sm">
+                    <h3 class="text-xs font-bold text-voyage-teal uppercase tracking-wider flex items-center justify-between font-serif-title">
+                        <span><i class="fa-solid fa-calendar-day mr-2 text-voyage-gold"></i>Actividades e Itinerario Programado (<span id="count-actividades">0</span>)</span>
+                        <span class="text-[10px] font-sans font-normal text-slate-500">Pestañas: Actividades & Itinerario</span>
+                    </h3>
+                    <div class="overflow-x-auto max-h-60">
+                        <table class="w-full text-xs text-left text-slate-700">
+                            <thead class="text-voyage-teal bg-voyage-paper uppercase text-[10px] font-bold border-b border-voyage-border" id="table-actividades-head"></thead>
+                            <tbody id="table-actividades-body" class="divide-y divide-voyage-border"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 3: RUTA Y MAPAS -->
+        <section id="tab-maps" class="tab-content hidden space-y-6">
+            <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div>
+                    <h2 class="text-xl font-bold font-serif-title text-voyage-teal flex items-center gap-2">
+                        <i class="fa-solid fa-map-location-dot text-voyage-sage"></i> Geolocalización y Ruta Trazada
+                    </h2>
+                    <p class="text-xs text-slate-600">Ruta cronológica calculada a partir de los destinos ingresados.</p>
+                </div>
+                <button onclick="renderInteractiveMaps()" class="px-3 py-1.5 bg-voyage-terracotta hover:bg-rose-800 text-white text-xs font-bold rounded-lg transition flex items-center gap-1 shadow">
+                    <i class="fa-solid fa-rotate-right"></i> Recargar Mapa
+                </button>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div class="bg-white border border-voyage-border rounded-2xl p-4 space-y-3 shadow-sm relative">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-bold text-voyage-teal uppercase tracking-wider flex items-center gap-2 font-serif-title">
+                            <i class="fa-solid fa-map-pin text-voyage-terracotta"></i> Mapa de Puntos de Destino
+                        </h3>
+                    </div>
+                    <div id="mapDestinos" class="shadow-inner border border-voyage-border"></div>
+                </div>
+
+                <div class="bg-white border border-voyage-border rounded-2xl p-4 space-y-3 shadow-sm relative">
+                    <div class="flex items-center justify-between">
+                        <h3 class="text-xs font-bold text-voyage-teal uppercase tracking-wider flex items-center gap-2 font-serif-title">
+                            <i class="fa-solid fa-route text-voyage-sage"></i> Ruta del Viaje (Trayectoria)
+                        </h3>
+                    </div>
+                    <div id="mapRuta" class="shadow-inner border border-voyage-border"></div>
+                </div>
+            </div>
+
+            <div class="bg-white border border-voyage-border rounded-xl p-5 space-y-3 shadow-sm">
+                <h4 class="text-xs font-bold uppercase tracking-wider text-voyage-teal font-serif-title">Secuencia de Ruta Cronológica</h4>
+                <div id="routeTimelineList" class="flex flex-wrap items-center gap-2 text-xs"></div>
+            </div>
+        </section>
+
+        <!-- TAB 4: PERSONALIZACIÓN & IMÁGENES -->
+        <section id="tab-custom" class="tab-content hidden space-y-6">
+            <div>
+                <h2 class="text-xl font-bold font-serif-title text-voyage-teal flex items-center gap-2">
+                    <i class="fa-solid fa-pen-to-square text-voyage-sage"></i> Personalización del Agente & Imágenes
+                </h2>
+                <p class="text-xs text-slate-600">Agrega notas, términos e imágenes personalizadas pegando el link directo de Google Imágenes.</p>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <div class="lg:col-span-2 space-y-4 bg-white border border-voyage-border rounded-2xl p-6 shadow-sm">
+                    <h3 class="text-xs font-bold text-voyage-teal border-b border-voyage-border pb-2 uppercase tracking-wider font-serif-title">Información Adicional para la Cotización</h3>
+                    
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
+                        <div>
+                            <label class="block text-slate-700 font-medium mb-1">Nombre del Cliente / Titular</label>
+                            <input type="text" id="agentClientName" value="Martha Vázquez Rivera & Acompañante" class="w-full bg-voyage-cream border border-voyage-border rounded-lg p-2.5 text-voyage-darkteal focus:border-voyage-terracotta outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-slate-700 font-medium mb-1">Nombre de la Agencia / Agente</label>
+                            <input type="text" id="agentName" value="Diego Cabrera - Travel Designer" class="w-full bg-voyage-cream border border-voyage-border rounded-lg p-2.5 text-voyage-darkteal focus:border-voyage-terracotta outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-slate-700 font-medium mb-1">Moneda / Tipo de Cambio</label>
+                            <input type="text" id="agentCurrency" value="MXN (Pesos Mexicanos)" class="w-full bg-voyage-cream border border-voyage-border rounded-lg p-2.5 text-voyage-darkteal focus:border-voyage-terracotta outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-slate-700 font-medium mb-1">Vigencia de la Cotización</label>
+                            <input type="text" id="agentVigencia" value="Precios sujetos a disponibilidad (Vigencia 48h)" class="w-full bg-voyage-cream border border-voyage-border rounded-lg p-2.5 text-voyage-darkteal focus:border-voyage-terracotta outline-none">
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-slate-700 font-medium mb-1">Mensaje de Bienvenida / Saludo</label>
+                        <textarea id="agentGreeting" rows="2" class="w-full bg-voyage-cream border border-voyage-border rounded-lg p-2.5 text-xs text-voyage-darkteal focus:border-voyage-terracotta outline-none">¡Hola! Es un placer presentarle la propuesta de viaje diseñada exclusivamente por 50 Mundos Voyage. A continuación encontrará los detalles de sus vuelos, hospedaje, tours e itinerario.</textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-slate-700 font-medium mb-1">Lo que Incluye el Viaje (Inclusiones)</label>
+                        <textarea id="agentInclusions" rows="3" class="w-full bg-voyage-cream border border-voyage-border rounded-lg p-2.5 text-xs text-voyage-darkteal focus:border-voyage-terracotta outline-none">✔ Vuelos redondos con equipaje seleccionado
+✔ Hospedaje en plan todo incluido / seleccionado
+✔ Asistencia y atención personalizada 24/7 por 50 Mundos Voyage
+✔ Todas las experiencias e itinerario detallado en el documento</textarea>
+                    </div>
+
+                    <div>
+                        <label class="block text-xs text-slate-700 font-medium mb-1">Políticas de Pago y Cancelación (Términos)</label>
+                        <textarea id="agentTerms" rows="3" class="w-full bg-voyage-cream border border-voyage-border rounded-lg p-2.5 text-xs text-voyage-darkteal focus:border-voyage-terracotta outline-none">● Anticipo del 50% para congelar tarifa de vuelos y hotel.
+● Saldo restante a liquidar 15 días antes de la fecha de salida.
+● Tarifas de vuelos no reembolsables una vez emitidos.</textarea>
+                    </div>
+                </div>
+
+                <div class="bg-white border border-voyage-border rounded-2xl p-6 space-y-4 shadow-sm">
+                    <h3 class="text-xs font-bold text-voyage-teal border-b border-voyage-border pb-2 flex items-center justify-between uppercase tracking-wider font-serif-title">
+                        <span><i class="fa-solid fa-image mr-1 text-voyage-terracotta"></i> Galería de Fotos</span>
+                        <button onclick="autoAssignUnsplashPhotos()" class="text-[10px] bg-voyage-paper hover:bg-voyage-sandlight text-voyage-teal px-2 py-1 rounded font-semibold border border-voyage-border">
+                            Auto-asignar
+                        </button>
+                    </h3>
+                    <p class="text-xs text-slate-600">Copia cualquier enlace de Google Imágenes e ingrésalo en el campo para actualizar la propuesta.</p>
+                    <div id="activityPhotosList" class="space-y-4 max-h-96 overflow-y-auto pr-1"></div>
+                </div>
+            </div>
+        </section>
+
+        <!-- TAB 5: COTIZACIÓN FINAL EN PDF CON TEXTURA DE PAPEL -->
+        <section id="tab-client" class="tab-content hidden space-y-6">
+            <div class="no-print bg-white border border-voyage-border rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-4 shadow-sm">
+                <div class="flex items-center gap-3">
+                    <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse"></div>
+                    <div>
+                        <p class="text-xs font-bold text-voyage-teal">Vista Previa de Cotización para Cliente (Front-Office)</p>
+                        <p class="text-[11px] text-slate-500">Documento listo para guardar en PDF o imprimir.</p>
+                    </div>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button onclick="window.print()" class="px-4 py-2 bg-voyage-terracotta hover:bg-rose-800 text-white font-bold text-xs rounded-lg transition shadow-md flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-pdf"></i> Imprimir o Guardar como PDF
+                    </button>
+                </div>
+            </div>
+
+            <!-- CONTENEDOR DOCUMENTO COTIZACIÓN CON TEXTURA DE PAPEL ARRUGA SUAVE Y ELEMENTOS DE MARCA -->
+            <div id="clientViewContainer" class="paper-texture-bg text-voyage-darkteal rounded-2xl p-6 sm:p-10 shadow-xl space-y-8 max-w-4xl mx-auto border border-voyage-sand/80 relative overflow-hidden">
+                
+                <!-- Ilustración sutil en la esquina superior sin amontonar texto -->
+                <div class="absolute top-2 right-4 pointer-events-none opacity-20 flex items-center gap-2">
+                    <img src="assets/ELEMENTOS-MARCA-04.png" class="h-14 w-auto object-contain" onerror="this.style.display='none'">
+                </div>
+
+                <!-- Header Banner con Logo -->
+                <div class="flex flex-col sm:flex-row justify-between items-start border-b-2 border-voyage-border pb-6 gap-4 relative z-10">
+                    <div class="space-y-2">
+                        <img src="assets/logo_50_mundos_marca.png" alt="50 Mundos Voyage" class="h-16 w-auto object-contain" onerror="this.onerror=null; this.src='https://placehold.co/200x60/FAF8F5/2C4445?text=50+MUNDOS+VOYAGE';">
+                        <p class="text-[11px] font-bold text-voyage-sage uppercase tracking-widest font-serif-title">
+                            50 MUNDOS VOYAGE 
+                        </p>
+                    </div>
+                    <div class="text-left sm:text-right text-xs text-slate-700 space-y-0.5 font-sans">
+                        <p class="font-bold text-voyage-teal text-base font-serif-title" id="cv-tour-name">Cotización de Viaje Exclusiva</p>
+                        <p id="cv-agent-name" class="font-semibold text-slate-800">Atendido por: Diego Cabrera</p>
+                        <p id="cv-date">Fecha: <span id="cv-current-date">--</span></p>
+                        <p class="text-[11px] text-voyage-terracotta font-semibold" id="cv-vigencia">Precios sujetos a cambio</p>
+                    </div>
+                </div>
+
+                <!-- Saludo e Información de Bienvenida con Ilustración Integrada en Lateral -->
+                <div class="bg-white/85 backdrop-blur rounded-xl p-6 border border-voyage-sand/60 shadow-xs space-y-3 relative overflow-hidden">
+                    <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                        <div class="space-y-2 flex-1 pr-0 md:pr-4">
+                            <h3 class="text-sm font-bold text-voyage-teal flex items-center gap-2 font-serif-title text-base">
+                                <i class="fa-solid fa-paper-plane text-voyage-terracotta"></i> Propuesta Preparada Para: <span id="cv-client-name" class="text-voyage-terracotta font-bold">Martha Vázquez Rivera</span>
+                            </h3>
+                            <p id="cv-greeting-text" class="text-xs text-slate-700 leading-relaxed italic">
+                                ¡Hola! Es un placer presentarle la propuesta de viaje diseñada exclusivamente para ti por 50 Mundos Voyage.
+                            </p>
+                        </div>
+
+                        <!-- Pareja de viajeros en tarjeta separada -->
+                        <div class="flex-shrink-0 bg-voyage-paper/80 p-2 rounded-xl border border-voyage-border flex items-center justify-center">
+                            <img src="assets/ELEMENTOS-MARCA-02.png" class="h-16 w-auto object-contain" onerror="this.style.display='none'">
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-voyage-border text-center text-xs">
+                        <div class="bg-voyage-cream p-3 rounded-lg border border-voyage-border shadow-xs">
+                            <p class="text-[10px] uppercase text-slate-500 font-semibold tracking-wider">Pasajeros</p>
+                            <p class="font-bold text-voyage-teal text-sm" id="cv-total-pax">2 Personas</p>
+                        </div>
+                        <div class="bg-voyage-cream p-3 rounded-lg border border-voyage-border shadow-xs">
+                            <p class="text-[10px] uppercase text-slate-500 font-semibold tracking-wider">Destinos</p>
+                            <p class="font-bold text-voyage-teal text-sm" id="cv-total-destinos">México, Cancún</p>
+                        </div>
+                        <div class="bg-voyage-cream p-3 rounded-lg border border-voyage-border shadow-xs">
+                            <p class="text-[10px] uppercase text-slate-500 font-semibold tracking-wider">Duración Total</p>
+                            <p class="font-bold text-voyage-teal text-sm" id="cv-total-days">3 Días</p>
+                        </div>
+                        <div class="bg-voyage-cream p-3 rounded-lg border border-voyage-border shadow-xs">
+                            <p class="text-[10px] uppercase text-slate-500 font-semibold tracking-wider">Inversión Total</p>
+                            <p class="font-bold text-voyage-terracotta text-base" id="cv-total-price">$0.00 MXN</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sección Mapa de Ruta con Brújula Ilustrada en Encabezado -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between border-b border-voyage-border pb-2">
+                        <h3 class="text-base font-bold text-voyage-teal flex items-center gap-2 font-serif-title">
+                            <i class="fa-solid fa-map text-voyage-sage"></i> Mapa del Destino y Ruta Programada
+                        </h3>
+                        <img src="assets/ELEMENTOS-MARCA-03.png" class="h-8 w-auto object-contain" onerror="this.style.display='none'">
+                    </div>
+                    <div id="mapClientView" class="border border-voyage-border shadow-sm rounded-xl overflow-hidden"></div>
+                </div>
+
+                <!-- Sección Vuelos con Maleta Ilustrada en Encabezado -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between border-b border-voyage-border pb-2">
+                        <h3 class="text-base font-bold text-voyage-teal flex items-center gap-2 font-serif-title">
+                            <i class="fa-solid fa-plane-departure text-voyage-terracotta"></i> Vuelos Incluidos
+                        </h3>
+                        <img src="assets/ELEMENTOS-MARCA-06.png" class="h-8 w-auto object-contain" onerror="this.style.display='none'">
+                    </div>
+                    <div id="cv-vuelos-container" class="grid grid-cols-1 gap-3 text-xs"></div>
+                </div>
+
+                <!-- Hospedaje Seleccionado -->
+                <div class="space-y-3">
+                    <div class="flex items-center justify-between border-b border-voyage-border pb-2">
+                        <h3 class="text-base font-bold text-voyage-teal flex items-center gap-2 font-serif-title">
+                            <i class="fa-solid fa-hotel text-voyage-sage"></i> Hospedaje Seleccionado
+                        </h3>
+                        <img src="assets/ELEMENTOS-MARCA-02.jpg" class="h-8 w-auto object-contain rounded" onerror="this.style.display='none'">
+                    </div>
+                    <div id="cv-hospedaje-container" class="grid grid-cols-1 gap-3 text-xs"></div>
+                </div>
+
+                <!-- Itinerario Organizado por Grupo y Pasajero -->
+                <div class="space-y-4">
+                    <div class="flex items-center justify-between border-b border-voyage-border pb-2">
+                        <h3 class="text-base font-bold text-voyage-teal flex items-center gap-2 font-serif-title">
+                            <i class="fa-solid fa-compass text-voyage-terracotta"></i> Itinerario de Experiencias y Actividades
+                        </h3>
+                        <img src="assets/ELEMENTOS-MARCA-07.png" class="h-10 w-auto object-contain" onerror="this.style.display='none'">
+                    </div>
+                    <div id="cv-itinerario-container" class="space-y-4 text-xs"></div>
+                </div>
+
+                <!-- Inclusiones y Políticas -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-voyage-border text-xs">
+                    <div class="bg-voyage-sky/40 p-4 rounded-xl border border-voyage-sage/30 space-y-2">
+                        <h4 class="font-bold text-voyage-teal flex items-center gap-1.5 font-serif-title text-sm">
+                            <i class="fa-solid fa-check-double text-voyage-sage"></i> Su Viaje Incluye:
+                        </h4>
+                        <div id="cv-inclusions-text" class="text-voyage-darkteal whitespace-pre-line leading-relaxed"></div>
+                    </div>
+                    <div class="bg-white/85 p-4 rounded-xl border border-voyage-sand/60 space-y-2">
+                        <h4 class="font-bold text-voyage-darkteal flex items-center gap-1.5 font-serif-title text-sm">
+                            <i class="fa-solid fa-credit-card text-voyage-terracotta"></i> Condiciones de Pago & Reserva:
+                        </h4>
+                        <div id="cv-terms-text" class="text-slate-700 whitespace-pre-line leading-relaxed"></div>
+                    </div>
+                </div>
+
+                <!-- Cierre con Ilustración de Viajera y Eslogan -->
+                <div class="pt-6 border-t border-voyage-border text-center text-xs text-slate-600 space-y-2 relative">
+                    <img src="assets/ELEMENTOS-MARCA-09.png" class="mx-auto h-16 w-auto object-contain" onerror="this.style.display='none'">
+                    <p class="font-bold text-voyage-teal font-serif-title text-sm">50 MUNDOS VOYAGE</p>
+                    <p class="text-slate-500 italic">Nuevos lugares para conocer nuevas versiones de ti.</p>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Scripts Modulares -->
+    <script src="js/config.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/excel-parser.js"></script>
+    <script src="js/map-engine.js"></script>
+    <script src="js/ui-render.js"></script>
+    <script src="js/main.js"></script>
+</body>
+</html>

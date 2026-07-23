@@ -1,0 +1,33 @@
+@font-face {
+    font-family: 'Bodoni Moda';
+    src: url('../fonts/BodoniModa-VariableFont_opsz,wght.ttf') format('truetype');
+}
+@font-face {
+    font-family: 'Montserrat';
+    src: url('../fonts/Montserrat-VariableFont_wght.ttf') format('truetype');
+}
+
+body { 
+    font-family: 'Montserrat', sans-serif; 
+    background-color: #FAF8F5;
+    color: #1C2B2C;
+}
+
+.font-serif-title { 
+    font-family: 'Bodoni Moda', serif; 
+}
+
+#mapDestinos, #mapRuta, #mapClientView { 
+    height: 400px; 
+    width: 100%; 
+    border-radius: 0.75rem; 
+    z-index: 10; 
+}
+
+/* Reglas especiales para Exportación PDF / Impresión */
+@media print {
+    .no-print { display: none !important; }
+    .print-only { display: block !important; }
+    body { background: white !important; color: black !important; }
+    #clientViewContainer { margin: 0; padding: 0; background: white !important; box-shadow: none !important; border: none !important; }
+}

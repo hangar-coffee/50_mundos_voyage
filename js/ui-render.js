@@ -49,15 +49,34 @@ function renderTables() {
 
     // Personas
     document.getElementById('count-personas').innerText = travelData.personas.length;
-    document.getElementById('table-personas-body').innerHTML = travelData.personas.map(p => `
+    document.getElementById('table-personas-body').innerHTML = travelData.personas.map(p => {
+        // Lógica Modo Agente: Construir etiquetas visuales si showInternalCosts es true
+        let extraInfo = '';
+        if (typeof showInternalCosts !== 'undefined' && showInternalCosts) {
+            let tags = [];
+            if (p.genero) tags.push(`<span class="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded shadow-xs"><i class="fa-solid fa-venus-mars"></i> ${p.genero}</span>`);
+            if (p.contacto) tags.push(`<span class="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded shadow-xs"><i class="fa-solid fa-phone"></i> ${p.contacto}</span>`);
+            if (p.alergias && p.alergias.toLowerCase() !== 'ninguna' && p.alergias.toLowerCase() !== 'n/a') {
+                tags.push(`<span class="bg-red-50 text-red-600 font-bold px-1.5 py-0.5 rounded shadow-xs"><i class="fa-solid fa-notes-medical"></i> ${p.alergias}</span>`);
+            }
+            if (tags.length > 0) {
+                extraInfo = `<div class="flex gap-1.5 mt-1.5 text-[10px]">${tags.join('')}</div>`;
+            }
+        }
+        
+        return `
         <tr class="hover:bg-voyage-paper/60">
-            <td class="p-2 font-medium text-voyage-teal">${p.nombre}</td>
+            <td class="p-2">
+                <div class="font-medium text-voyage-teal">${p.nombre}</div>
+                ${extraInfo}
+            </td>
             <td class="p-2">${p.edad} años</td>
             <td class="p-2"><span class="bg-voyage-sky text-voyage-teal px-2 py-0.5 rounded text-[10px] font-semibold">${p.categoria}</span></td>
             <td class="p-2">Grupo ${p.grupo}</td>
             <td class="p-2 text-slate-500">${p.nivel}</td>
         </tr>
-    `).join('') || '<tr><td colspan="5" class="p-2 text-slate-400 italic">Sin datos de pasajeros.</td></tr>';
+        `;
+    }).join('') || '<tr><td colspan="5" class="p-2 text-slate-400 italic">Sin datos de pasajeros.</td></tr>';
 
     // Vuelos
     document.getElementById('count-vuelos').innerText = travelData.vuelos.length;
@@ -117,12 +136,12 @@ function renderTables() {
         `;
     }).join('') || `<tr><td colspan="${showInternalCosts ? 7 : 5}" class="p-2 text-slate-400 italic">Sin hospedaje registrado.</td></tr>`;
 
-    // Actividades
+// Actividades
     document.getElementById('count-actividades').innerText = travelData.actividades.length;
     document.getElementById('table-actividades-head').innerHTML = `
         <tr>
             <th class="p-2">Fecha</th>
-            <th class="p-2">Hora</th>
+            <th class="p-2">Horario</th>
             <th class="p-2">Actividad</th>
             <th class="p-2">Lugar / Destino</th>
             <th class="p-2">Duración</th>
@@ -134,10 +153,32 @@ function renderTables() {
 
     document.getElementById('table-actividades-body').innerHTML = travelData.actividades.map(a => {
         const ganancia = Number(a.precioCliente || 0) - Number(a.costoNeto || 0);
+        
+        // Cruzamos la data con itinerario por si ahí se detallaron las horas de salida/llegada
+        let hLlegada = a.hora_llegada;
+        let hSalida = a.hora_salida;
+        if (Array.isArray(travelData.itinerario)) {
+            const match = travelData.itinerario.find(i => i.actividad === a.actividad && i.fecha === a.fecha);
+            if (match) {
+                if (match.hora_llegada && match.hora_llegada !== '09:00') hLlegada = match.hora_llegada;
+                if (match.hora_salida && match.hora_salida !== '09:00') hSalida = match.hora_salida;
+            }
+        }
+
+        // Lógica de visualización de horas para la tabla
+        let displayTime = a.hora;
+        if (hSalida && hLlegada && hSalida !== '09:00' && hLlegada !== '09:00') {
+            displayTime = `<div class="text-[11px] leading-tight"><span class="text-slate-400 font-bold">llegada:</span> ${hLlegada}<br><span class="text-slate-400 font-bold">salida:</span> ${hSalida}</div>`;
+        } else if (hSalida && hSalida !== '09:00') {
+            displayTime = `<div class="text-[11px]"><span class="text-slate-400 font-bold">salida:</span> ${hSalida}</div>`;
+        } else if (hLlegada && hLlegada !== '09:00') {
+            displayTime = `<div class="text-[11px]"><span class="text-slate-400 font-bold">llegada:</span> ${hLlegada}</div>`;
+        }
+
         return `
             <tr class="hover:bg-voyage-paper/60">
                 <td class="p-2 font-medium text-voyage-sage">${a.fecha}</td>
-                <td class="p-2">${a.hora}</td>
+                <td class="p-2">${displayTime}</td>
                 <td class="p-2 font-semibold text-voyage-teal">${a.actividad}</td>
                 <td class="p-2 text-slate-500">${a.lugar} (${a.destino})</td>
                 <td class="p-2">${a.duracion}</td>
@@ -422,10 +463,8 @@ function renderItineraryByGroups() {
     const container = document.getElementById('cv-itinerario-container');
     if (!container) return;
 
-    // Usaremos un "Mapa" (Objeto) para agrupar Actividades e Itinerario usando el Nombre y la Fecha
     const combinedMap = {};
     
-    // 1. Primero cargamos la información base de la pestaña Actividades (que tiene los precios)
     if (Array.isArray(travelData.actividades)) {
         travelData.actividades.forEach(a => {
             const key = a.actividad.trim() + '|' + a.fecha;
@@ -433,27 +472,29 @@ function renderItineraryByGroups() {
                 actividad: a.actividad,
                 fecha: a.fecha,
                 hora: a.hora,
+                hora_llegada: a.hora_llegada,
+                hora_salida: a.hora_salida,
                 lugar: a.lugar,
                 destino: a.destino,
                 duracion: a.duracion,
                 grupo: String(a.grupo || 1),
                 precioCliente: a.precioCliente,
-                pasajerosSet: new Set() // Usamos Set para agrupar varios nombres y evitar duplicados
+                pasajerosSet: new Set()
             };
         });
     }
 
-    // 2. Luego cruzamos con la pestaña Itinerario para asignar a las personas
     if (Array.isArray(travelData.itinerario)) {
         travelData.itinerario.forEach(i => {
             const key = i.actividad.trim() + '|' + i.fecha;
             
-            // Si la actividad no estaba en "Actividades", la creamos basándonos en el "Itinerario"
             if (!combinedMap[key]) {
                 combinedMap[key] = {
                     actividad: i.actividad,
                     fecha: i.fecha,
                     hora: i.hora,
+                    hora_llegada: i.hora_llegada,
+                    hora_salida: i.hora_salida,
                     lugar: i.lugar,
                     destino: i.destino,
                     duracion: 'Por definir',
@@ -461,20 +502,23 @@ function renderItineraryByGroups() {
                     precioCliente: 0,
                     pasajerosSet: new Set()
                 };
+            } else {
+                // Ya no bloqueamos las horas, si traen un valor válido las inyectamos
+                if (i.hora_llegada) combinedMap[key].hora_llegada = i.hora_llegada;
+                if (i.hora_salida) combinedMap[key].hora_salida = i.hora_salida;
+                if (i.hora) combinedMap[key].hora = i.hora;
             }
-            // Agregamos el nombre de la persona a esta actividad específica
+
             if (i.pasajeros && i.pasajeros !== 'Todos los asignados' && i.pasajeros !== 'Grupo Completo') {
                 combinedMap[key].pasajerosSet.add(i.pasajeros.trim());
             }
         });
     }
 
-    // 3. Convertimos el Mapa combinado de vuelta a un arreglo
     const combinedList = Object.values(combinedMap).map(item => {
         const pasList = Array.from(item.pasajerosSet);
         return {
             ...item,
-            // Si hay personas asignadas las unimos con comas (Ej: "Diego, Martha"), si no, dice "Grupo Completo"
             pasajeros: pasList.length > 0 ? pasList.join(', ') : 'Grupo Completo'
         };
     });
@@ -484,13 +528,12 @@ function renderItineraryByGroups() {
         return;
     }
 
-    // Agrupar pasajeros del grupo total (para la cabecera)
     const groupPassengersMap = {};
     if (Array.isArray(travelData.personas)) {
         travelData.personas.forEach(p => {
             const gKey = String(p.grupo || 1);
             if (!groupPassengersMap[gKey]) groupPassengersMap[gKey] = [];
-            groupPassengersMap[gKey].push(p.nombre);
+            groupPassengersMap[gKey].push(p); 
         });
     }
 
@@ -505,7 +548,25 @@ function renderItineraryByGroups() {
 
     container.innerHTML = groupKeys.map((gKey) => {
         const groupActivities = activitiesByGroup[gKey];
-        const passengers = groupPassengersMap[gKey] || ['Pasajeros del Grupo'];
+        const passengersList = groupPassengersMap[gKey] || [];
+
+        const passengersHtml = passengersList.map(p => {
+            if (typeof p === 'string') return `<div>• ${p}</div>`;
+            
+            let extraTags = '';
+            if (typeof showInternalCosts !== 'undefined' && showInternalCosts) {
+                let tags = [];
+                if (p.genero && p.genero !== 'N/A') tags.push(p.genero);
+                if (p.contacto && p.contacto !== 'N/A') tags.push(`<i class="fa-solid fa-phone"></i> ${p.contacto}`);
+                if (p.alergias && p.alergias.toLowerCase() !== 'ninguna' && p.alergias.toLowerCase() !== 'n/a') {
+                    tags.push(`<span class="text-red-500 font-bold"><i class="fa-solid fa-notes-medical"></i> ${p.alergias}</span>`);
+                }
+                if (tags.length > 0) {
+                    extraTags = `<span class="text-[9px] text-slate-500 ml-1.5 font-normal border-l border-slate-300 pl-1.5">${tags.join(' | ')}</span>`;
+                }
+            }
+            return `<div class="whitespace-nowrap truncate text-xs text-slate-700 mt-0.5">• <b>${p.nombre}</b> ${extraTags}</div>`;
+        }).join('');
 
         const activitiesHtml = groupActivities.map((a, idx) => {
             const photo = (travelData.activityPhotos && travelData.activityPhotos[a.actividad]) ? 
@@ -514,13 +575,23 @@ function renderItineraryByGroups() {
 
             const priceLabel = a.precioCliente > 0 ? `$${Number(a.precioCliente).toLocaleString()} MXN` : 'Incluido';
 
+            // LÓGICA DE HORAS LIMPIA Y SIN BLOQUEOS
+            let displayTime = a.hora;
+            if (a.hora_salida && a.hora_llegada) {
+                displayTime = `Salida: ${a.hora_salida} | Llegada: ${a.hora_llegada}`;
+            } else if (a.hora_salida) {
+                displayTime = `Salida: ${a.hora_salida}`;
+            } else if (a.hora_llegada) {
+                displayTime = `Llegada: ${a.hora_llegada}`;
+            }
+
             return `
                 <div class="bg-white border border-voyage-border rounded-xl overflow-hidden flex flex-col sm:flex-row shadow-xs">
                     <img src="${photo}" class="w-full sm:w-44 h-32 object-cover" onerror="this.src='${window.samplePhotos ? window.samplePhotos[0] : ''}'">
                     <div class="p-3.5 flex-1 flex flex-col justify-between space-y-2">
                         <div>
                             <div class="flex items-center justify-between">
-                                <span class="text-voyage-terracotta font-bold text-[11px]"><i class="fa-regular fa-calendar mr-1"></i>${a.fecha} - ${a.hora}</span>
+                                <span class="text-voyage-terracotta font-bold text-[11px]"><i class="fa-regular fa-clock mr-1"></i>${a.fecha} - ${displayTime}</span>
                                 <span class="bg-voyage-cream text-voyage-teal text-[10px] px-2 py-0.5 rounded font-semibold border border-voyage-border">${a.duracion}</span>
                             </div>
                             <h5 class="font-bold text-voyage-teal text-sm mt-1 font-serif-title">${a.actividad}</h5>
@@ -539,14 +610,19 @@ function renderItineraryByGroups() {
 
         return `
             <div class="bg-voyage-cream/60 border border-voyage-border rounded-2xl p-4 space-y-3 shadow-xs">
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between pb-2 border-b border-voyage-border gap-2">
+                <div class="flex flex-col sm:flex-row sm:items-start justify-between pb-3 border-b border-voyage-border gap-3">
                     <div class="flex items-center gap-2">
                         <span class="bg-voyage-terracotta text-white font-bold text-xs px-2.5 py-1 rounded-lg">Grupo ${gKey}</span>
                         <h4 class="font-bold text-voyage-teal text-sm">Itinerario Programado</h4>
                     </div>
-                    <div class="text-xs text-slate-700 bg-white px-3 py-1 rounded-lg border border-voyage-border">
-                        <i class="fa-solid fa-users text-voyage-sage mr-1.5"></i>
-                        <b>Pasajeros:</b> ${passengers.join(', ')}
+                    
+                    <div class="bg-white px-3 py-2 rounded-xl border border-voyage-border shadow-xs min-w-[220px]">
+                        <div class="flex items-center gap-1.5 mb-1 text-voyage-sage border-b border-voyage-border pb-1">
+                            <i class="fa-solid fa-id-card"></i> <span class="font-bold uppercase text-[10px] tracking-wide">Ficha de Pasajeros</span>
+                        </div>
+                        <div class="flex flex-col">
+                            ${passengersHtml || '<i class="text-xs text-slate-400">Sin asignar</i>'}
+                        </div>
                     </div>
                 </div>
                 <div class="space-y-3">

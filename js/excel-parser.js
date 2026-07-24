@@ -52,14 +52,30 @@ function normalizeText(str) {
 }
 
 function parseWorkbookData(workbook) {
+    // 1. FORZAMOS el vaciado de los arreglos directamente.
+    // Al no reasignar el objeto completo, evitamos errores si travelData es 'const' en otro archivo.
+    if (typeof travelData !== 'undefined') {
+        travelData.personas = [];
+        travelData.destinos = [];
+        travelData.vuelos = [];
+        travelData.hospedaje = [];
+        travelData.actividades = [];
+        travelData.itinerario = [];
+        travelData.paquetes = [];
+        travelData.activityPhotos = {};
+        travelData.hotelPhotos = {};
+        travelData.destinoPhotos = {};
+    }
+
+    // 2. Limpiamos la caché del navegador para matar los datos de sesiones pasadas de VS Code
+    try {
+        localStorage.clear();
+    } catch(e) {
+        console.warn("No se pudo limpiar el localStorage", e);
+    }
+
     if (typeof resetData === 'function') {
         resetData();
-    } else {
-        travelData = { 
-            personas: [], destinos: [], vuelos: [], 
-            hospedaje: [], actividades: [], itinerario: [], 
-            paquetes: [], activityPhotos: {} 
-        };
     }
 
     if (!workbook || !workbook.SheetNames || !Array.isArray(workbook.SheetNames)) return;
@@ -141,7 +157,11 @@ function findHeaderAndMap(rows, keywords) {
 
 function getVal(row, colMap, keywords, fallbackIdx = -1) {
     if (!Array.isArray(row) || row.length === 0) return '';
-    if (colMap && typeof colMap === 'object' && Array.isArray(keywords)) {
+    
+    const hasColMap = colMap && typeof colMap === 'object' && Object.keys(colMap).length > 0;
+    
+    // 1. Búsqueda inteligente por nombre de columna
+    if (hasColMap && Array.isArray(keywords)) {
         for (let kw of keywords) {
             if (!kw) continue;
             const normKw = normalizeText(kw);
@@ -155,34 +175,43 @@ function getVal(row, colMap, keywords, fallbackIdx = -1) {
                 }
             }
         }
+        // MODIFICACIÓN CLAVE: Si encontró los encabezados pero no halló esta columna en específico,
+        // devolvemos vacío ('') en lugar de adivinar el índice. Esto evita que los datos se mezclen.
+        return '';
     }
-    if (fallbackIdx >= 0 && fallbackIdx < row.length && row[fallbackIdx] !== undefined && row[fallbackIdx] !== null && String(row[fallbackIdx]).trim() !== '') {
+
+    // 2. El índice de respaldo SOLO se usa si el archivo de plano no tiene fila de encabezados.
+    if (!hasColMap && fallbackIdx >= 0 && fallbackIdx < row.length && row[fallbackIdx] !== undefined && row[fallbackIdx] !== null && String(row[fallbackIdx]).trim() !== '') {
         return row[fallbackIdx];
     }
     return '';
 }
-
 function parsePersonasSheet(rows) {
     if (!Array.isArray(rows) || rows.length === 0) return;
-    const { headerIdx, colMap } = findHeaderAndMap(rows, ['nombre', 'persona', 'pasajero', 'paterno']);
+    const { headerIdx, colMap } = findHeaderAndMap(rows, ['nombre', 'persona', 'pasajero', 'paterno', 'nombres']);
     travelData.personas = travelData.personas || [];
 
     for (let i = headerIdx + 1; i < rows.length; i++) {
         const r = rows[i];
         if (!Array.isArray(r) || r.length === 0 || r.every(c => c === '' || c === null || c === undefined)) continue;
 
-        const nombre = getVal(r, colMap, ['nombre completo'], 3) || 
-                       `${getVal(r, colMap, ['nombres', 'nombre'], 0)} ${getVal(r, colMap, ['paterno', 'apellido paterno'], 1)} ${getVal(r, colMap, ['materno', 'apellido materno'], 2)}`.trim();
+        const nombre = getVal(r, colMap, ['nombre completo', 'nombre', 'nombres', 'pasajero'], 3) || 
+                       `${getVal(r, colMap, ['paterno', 'apellido paterno'], 1)} ${getVal(r, colMap, ['materno', 'apellido materno'], 2)}`.trim();
         
         const normNombre = normalizeText(nombre);
         if (!nombre || normNombre === 'nombre' || normNombre === 'nombre completo' || normNombre === 'nombres' || normNombre === 'pasajero') continue;
 
         travelData.personas.push({
             nombre: String(nombre),
-            edad: getVal(r, colMap, ['edad'], 4) || 'N/A',
-            categoria: getVal(r, colMap, ['categoria', 'categoría'], 5) || 'ADULTO',
-            grupo: getVal(r, colMap, ['grupo'], 6) || 1,
-            nivel: getVal(r, colMap, ['nivel'], 7) || 'Viajero'
+            // Ampliamos las palabras clave para encontrar las columnas sin importar dónde estén
+            edad: getVal(r, colMap, ['edad', 'años', 'anos', 'age'], 4) || 'N/A',
+            categoria: getVal(r, colMap, ['categoria', 'categoría', 'tipo', 'category'], 5) || 'ADULTO',
+            grupo: getVal(r, colMap, ['grupo', 'grp', 'group'], 6) || 1,
+            nivel: getVal(r, colMap, ['nivel', 'perfil', 'level'], 7) || 'Viajero',
+            // Nuevos campos
+            genero: getVal(r, colMap, ['genero', 'género', 'sexo', 'gender']) || '',
+            contacto: getVal(r, colMap, ['contacto', 'numero', 'número', 'telefono', 'teléfono', 'celular', 'phone']) || '',
+            alergias: getVal(r, colMap, ['alergia', 'alergias', 'restricciones', 'medico', 'médico', 'medical']) || ''
         });
     }
 }
@@ -311,7 +340,7 @@ function parseHospedajeSheet(rows) {
 
 function parseActividadesSheet(rows) {
     if (!Array.isArray(rows) || rows.length === 0) return;
-    const { headerIdx, colMap } = findHeaderAndMap(rows, ['actividad', 'fecha', 'hora', 'lugar', 'duracion']);
+    const { headerIdx, colMap } = findHeaderAndMap(rows, ['actividad', 'fecha', 'hora', 'lugar', 'duracion', 'duración']);
     travelData.actividades = travelData.actividades || [];
 
     const invalidKeywords = [
@@ -324,59 +353,77 @@ function parseActividadesSheet(rows) {
         const r = rows[i];
         if (!Array.isArray(r) || r.length === 0 || r.every(c => c === '' || c === null || c === undefined)) continue;
 
-        const actividad = getVal(r, colMap, ['actividad'], 0);
-        const normActividad = normalizeText(actividad);
+        let rawActividad = getVal(r, colMap, ['actividad', 'tour', 'excursion', 'excursión', 'servicio'], 0);
+        let rawLugar = getVal(r, colMap, ['lugar', 'ubicacion', 'ubicación', 'punto de encuentro'], 3);
+        
+        let actividadStr = String(rawActividad).trim();
+        let lugarStr = String(rawLugar || 'Ubicación').trim();
 
-        if (!actividad || 
+        const normActividad = normalizeText(actividadStr);
+
+        if (!actividadStr || 
             invalidKeywords.some(kw => normActividad === kw) ||
             normActividad.includes('porcentaje') || 
             normActividad.includes('utilidad') || 
             normActividad.includes('apartado') ||
             normActividad.includes('total')) continue;
 
-        const costoNeto = Number(getVal(r, colMap, ['50 mundos', 'costo'], 6)) || 0;
-        const precioCliente = Number(getVal(r, colMap, ['precio cliente', 'cliente final'], 7)) || (costoNeto > 0 ? costoNeto * 1.15 : 0);
+        const costoNeto = Number(getVal(r, colMap, ['50 mundos', 'costo', 'neto', 'precio neto'], 6)) || 0;
+        const precioCliente = Number(getVal(r, colMap, ['precio cliente', 'cliente final', 'precio', 'venta'], 7)) || (costoNeto > 0 ? costoNeto * 1.15 : 0);
 
         travelData.actividades.push({
-            actividad: String(actividad).trim(),
-            fecha: formatDate(getVal(r, colMap, ['fecha'], 1)),
-            hora: formatTime(getVal(r, colMap, ['hora'], 2)),
-            lugar: String(getVal(r, colMap, ['lugar'], 3) || 'Ubicación').trim(),
-            destino: String(getVal(r, colMap, ['destino'], 4) || 'Destino').trim(),
-            duracion: String(getVal(r, colMap, ['duracion', 'duración'], 5) || 'Por definir').trim(),
+            actividad: actividadStr, // Toma exactamente lo que dice en el Excel
+            fecha: formatDate(getVal(r, colMap, ['fecha', 'date', 'día', 'dia'], 1)),
+            hora: formatTime(getVal(r, colMap, ['hora', 'time', 'horario'], 2)),
+            lugar: lugarStr, // Toma exactamente lo que dice en el Excel
+            destino: String(getVal(r, colMap, ['destino', 'ciudad', 'ubicación'], 4) || 'Destino').trim(),
+            duracion: String(getVal(r, colMap, ['duracion', 'duración', 'tiempo'], 5) || 'Por definir').trim(),
             costoNeto: costoNeto,
             precioCliente: precioCliente,
-            grupo: getVal(r, colMap, ['grupo'], 8) || 1,
+            grupo: getVal(r, colMap, ['grupo', 'grp'], 8) || 1,
         });
     }
 }
 
 function parseItinerarioSheet(rows) {
     if (!Array.isArray(rows) || rows.length === 0) return;
-    const { headerIdx, colMap } = findHeaderAndMap(rows, ['actividad', 'nombre', 'lugar']);
+    const { headerIdx, colMap } = findHeaderAndMap(rows, ['actividad', 'nombre', 'lugar', 'fecha']);
     travelData.itinerario = travelData.itinerario || [];
 
     for (let i = headerIdx + 1; i < rows.length; i++) {
         const r = rows[i];
         if (!Array.isArray(r) || r.length === 0 || r.every(c => c === '' || c === null || c === undefined)) continue;
 
-        const actividad = getVal(r, colMap, ['actividad'], 2) || getVal(r, colMap, ['nombre'], 0);
-        const normActividad = normalizeText(actividad);
+        let rawActividad = getVal(r, colMap, ['actividad', 'tour', 'excursion', 'excursión', 'servicio'], 2);
+        if (!rawActividad) {
+            rawActividad = getVal(r, colMap, ['nombre de actividad'], 2) || getVal(r, colMap, ['nombre'], 0);
+        }
 
-        if (!actividad || normActividad === 'actividad' || normActividad === 'nombre') continue;
+        let rawLugar = getVal(r, colMap, ['lugar', 'ubicacion', 'ubicación', 'punto'], 4);
+        let actividadStr = String(rawActividad).trim();
+        let lugarStr = String(rawLugar || 'Lugar').trim();
+
+        const normActividad = normalizeText(actividadStr);
+        if (!actividadStr || normActividad === 'actividad' || normActividad === 'nombre') continue;
+
+        // Capturamos la hora cruda ANTES de formatearla para saber si la clienta realmente la escribió
+        let rawSalida = getVal(r, colMap, ['hora de salida', 'salida', 'salida de']);
+        let rawLlegada = getVal(r, colMap, ['hora de llegada', 'llegada', 'llegada a']);
 
         travelData.itinerario.push({
-            pasajeros: String(getVal(r, colMap, ['nombre', 'pasajero', 'pasajeros'], 0) || 'Todos los asignados'),
-            grupo: getVal(r, colMap, ['grupo'], 1) || 1,
-            actividad: String(actividad),
-            destino: String(getVal(r, colMap, ['destino'], 3) || 'Destino'),
-            lugar: String(getVal(r, colMap, ['lugar'], 4) || 'Lugar'),
-            hora: formatTime(getVal(r, colMap, ['hora'], 5)),
-            fecha: formatDate(getVal(r, colMap, ['fecha'], 6))
+            pasajeros: String(getVal(r, colMap, ['pasajero', 'pasajeros', 'cliente', 'nombre'], 0) || 'Todos los asignados'),
+            grupo: getVal(r, colMap, ['grupo', 'grp'], 1) || 1,
+            actividad: actividadStr,
+            destino: String(getVal(r, colMap, ['destino', 'ciudad'], 3) || 'Destino'),
+            lugar: lugarStr,
+            hora: formatTime(getVal(r, colMap, ['hora', 'time', 'horario'], 5)),
+            // Asignamos la hora formateada SOLO si la celda no estaba vacía
+            hora_salida: rawSalida ? formatTime(rawSalida) : null,
+            hora_llegada: rawLlegada ? formatTime(rawLlegada) : null,
+            fecha: formatDate(getVal(r, colMap, ['fecha', 'date', 'día', 'dia'], 6))
         });
     }
 }
-
 function formatDate(val) {
     if (val === null || val === undefined || val === '') return 'Por definir';
     if (val instanceof Date) {

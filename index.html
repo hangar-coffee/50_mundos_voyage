@@ -299,11 +299,11 @@
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                         <div>
                             <label class="block text-slate-700 font-medium mb-1">Nombre del Cliente / Titular</label>
-                            <input type="text" id="agentClientName" value="Martha Vázquez Rivera & Acompañante" class="w-full bg-voyage-cream border border-voyage-border rounded-lg p-2.5 text-voyage-darkteal focus:border-voyage-terracotta outline-none">
+                            <input type="text" id="agentClientName" value="" class="w-full bg-voyage-cream border border-voyage-border rounded-lg p-2.5 text-voyage-darkteal focus:border-voyage-terracotta outline-none">
                         </div>
                         <div>
                             <label class="block text-slate-700 font-medium mb-1">Nombre de la Agencia / Agente</label>
-                            <input type="text" id="agentName" value="Diego Cabrera - Travel Designer" class="w-full bg-voyage-cream border border-voyage-border rounded-lg p-2.5 text-voyage-darkteal focus:border-voyage-terracotta outline-none">
+                            <input type="text" id="agentName" value="Ileana Meza Mejía" class="w-full bg-voyage-cream border border-voyage-border rounded-lg p-2.5 text-voyage-darkteal focus:border-voyage-terracotta outline-none">
                         </div>
                         <div>
                             <label class="block text-slate-700 font-medium mb-1">Moneda / Tipo de Cambio</label>
@@ -368,26 +368,39 @@
 
             <!-- CONTENEDOR DOCUMENTO COTIZACIÓN CON TEXTURA DE PAPEL ARRUGA SUAVE Y ELEMENTOS DE MARCA -->
             <div id="clientViewContainer" class="paper-texture-bg text-voyage-darkteal rounded-2xl p-6 sm:p-10 shadow-xl space-y-8 max-w-4xl mx-auto border border-voyage-sand/80 relative overflow-hidden">
-                
-                <!-- Ilustración sutil en la esquina superior sin amontonar texto -->
-                <div class="absolute top-2 right-4 pointer-events-none opacity-20 flex items-center gap-2">
-                    <img src="assets/ELEMENTOS-MARCA-04.png" class="h-14 w-auto object-contain" onerror="this.style.display='none'">
-                </div>
 
                 <!-- Header Banner con Logo -->
                 <div class="flex flex-col sm:flex-row justify-between items-start border-b-2 border-voyage-border pb-6 gap-4 relative z-10">
-                    <div class="space-y-2">
-                        <img src="assets/logo_50_mundos_marca.png" alt="50 Mundos Voyage" class="h-16 w-auto object-contain" onerror="this.onerror=null; this.src='https://placehold.co/200x60/FAF8F5/2C4445?text=50+MUNDOS+VOYAGE';">
-                        <p class="text-[11px] font-bold text-voyage-sage uppercase tracking-widest font-serif-title">
-                            50 MUNDOS VOYAGE 
-                        </p>
+                    <div class="flex flex-col items-center justify-center space-y-4">
+                        <!-- Logo 50 Mundos (Más grande, pasamos de h-20 a h-32 o h-40 en pantallas grandes) -->
+                        <img src="assets/logo_50_mundos_marca.png" alt="50 Mundos Voyage" class="h-32 sm:h-40 w-auto object-contain" onerror="this.onerror=null; this.src='https://placehold.co/300x120/FAF8F5/2C4445?text=50+MUNDOS+VOYAGE';">
+    
+                        <!-- Certificaciones (Mantiene su tamaño original proporcionado) -->
+                        <img src="assets/certificaciones_50_mundos.png" alt="Certificaciones 50 Mundos" class="h-10 sm:h-12 w-auto object-contain" onerror="this.onerror=null; this.src='https://placehold.co/200x60/FAF8F5/2C4445?text=CERTIFICACIONES';">
                     </div>
                     <div class="text-left sm:text-right text-xs text-slate-700 space-y-0.5 font-sans">
                         <p class="font-bold text-voyage-teal text-base font-serif-title" id="cv-tour-name">Cotización de Viaje Exclusiva</p>
-                        <p id="cv-agent-name" class="font-semibold text-slate-800">Atendido por: Diego Cabrera</p>
-                        <p id="cv-date">Fecha: <span id="cv-current-date">--</span></p>
-                        <p class="text-[11px] text-voyage-terracotta font-semibold" id="cv-vigencia">Precios sujetos a cambio</p>
-                    </div>
+    
+                         <div class="py-1.5">
+                         <!-- Nombre y Cargo -->
+                         <p id="cv-agent-name" class="font-bold text-slate-800 text-[13px]">Ileana Meza Mejía</p>
+                         <p class="text-[9px] text-slate-500 uppercase tracking-widest font-semibold mb-1.5">Exploradora Master & Fundadora</p>
+        
+                         <!-- Datos de Contacto -->
+                         <div class="space-y-0.5 text-[11px]">
+                        <p><i class="fa-solid fa-phone text-voyage-sage mr-1.5"></i>+52 55 3953 1306</p>
+                        <p><i class="fa-solid fa-envelope text-voyage-sage mr-1.5"></i>contactoileanameza@gmail.com</p>
+                        <p><i class="fa-brands fa-instagram text-voyage-sage mr-1"></i> <i class="fa-brands fa-facebook text-voyage-sage mr-1"></i>50 Mundos Voyage</p>
+                        <p class="text-[9px] text-slate-400 mt-1 max-w-[220px] sm:ml-auto leading-tight">
+                          Antonio Ancona 3133, CDMX México Cuajimalpa CP: 05000
+                         </p>
+                            </div>
+                            </div>
+
+                         <!-- Fecha y Vigencia -->
+                       <p id="cv-date" class="pt-1">Fecha: <span id="cv-current-date" class="font-medium">--</span></p>
+                       <p class="text-[10px] text-voyage-terracotta font-semibold uppercase tracking-wide" id="cv-vigencia">Precios sujetos a cambio</p>
+                </div>
                 </div>
 
                 <!-- Saludo e Información de Bienvenida con Ilustración Integrada en Lateral -->
@@ -490,9 +503,7 @@
 
                 <!-- Cierre con Ilustración de Viajera y Eslogan -->
                 <div class="pt-6 border-t border-voyage-border text-center text-xs text-slate-600 space-y-2 relative">
-                    <img src="assets/ELEMENTOS-MARCA-09.png" class="mx-auto h-16 w-auto object-contain" onerror="this.style.display='none'">
-                    <p class="font-bold text-voyage-teal font-serif-title text-sm">50 MUNDOS VOYAGE</p>
-                    <p class="text-slate-500 italic">Nuevos lugares para conocer nuevas versiones de ti.</p>
+                    <img src="assets/datos_pago_50_mundos.jpeg" class="mx-auto h-40 w-auto object-contain" onerror="this.style.display='none'">
                 </div>
             </div>
         </section>

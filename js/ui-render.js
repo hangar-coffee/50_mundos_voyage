@@ -200,95 +200,51 @@ function buildActivityPhotosUI() {
 
     let html = '';
 
-    // SECCIÓN 1: ACTIVIDADES
-    html += `
-        <div class="mb-4">
-            <h4 class="text-xs font-bold text-voyage-terracotta uppercase border-b border-voyage-border pb-1 mb-2 flex items-center gap-1.5 font-serif-title">
-                <i class="fa-solid fa-compass"></i> Imágenes de Actividades y Tours (${allActivities.length})
-            </h4>
-    `;
-    if (allActivities.length === 0) {
-        html += '<p class="text-xs text-slate-400 italic">Sin actividades cargadas.</p>';
-    } else {
-        html += allActivities.map((name, i) => {
-            const currentPhoto = (travelData.activityPhotos && travelData.activityPhotos[name]) ? 
-                travelData.activityPhotos[name] : 
-                (window.samplePhotos ? window.samplePhotos[i % window.samplePhotos.length] : '');
-            const safeName = name.replace(/'/g, "\\'");
+    // Función interna para renderizar las secciones de forma limpia y a prueba de errores
+    const renderBlock = (type, list, title, icon, photosObj, sampleOffset) => {
+        let out = `
+            <div class="mb-4">
+                <h4 class="text-xs font-bold text-voyage-teal uppercase border-b border-voyage-border pb-1 mb-2 flex items-center gap-1.5 font-serif-title">
+                    <i class="fa-solid ${icon}"></i> ${title} (${list.length})
+                </h4>
+        `;
+        if (list.length === 0) {
+            out += `<p class="text-xs text-slate-400 italic">Sin datos cargados.</p>`;
+        } else {
+            out += list.map((itemName, i) => {
+                const currentPhoto = (photosObj && photosObj[itemName]) ? 
+                    photosObj[itemName] : 
+                    (window.samplePhotos ? window.samplePhotos[(i + sampleOffset) % window.samplePhotos.length] : '');
+                
+                // CLAVE 1: Evitar inyectar millones de caracteres en el DOM previniendo el colapso
+                const isBase64 = currentPhoto && currentPhoto.length > 500;
+                const displayValue = isBase64 ? '' : currentPhoto.replace(/"/g, '&quot;');
+                const placeholder = isBase64 ? 'Imagen cargada desde archivo local' : 'URL de la imagen';
+                
+                // CLAVE 2: Encodear el string para que comillas y saltos de línea no rompan el HTML
+                const encName = encodeURIComponent(itemName);
 
-            return `
-               <div class="space-y-1 bg-voyage-cream p-2.5 rounded-xl border border-voyage-border shadow-xs mb-2">
-                    <label class="block text-[11px] font-bold text-voyage-teal truncate" title="${name}">${i + 1}. ${name}</label>
+                return `
+                <div class="space-y-1 bg-voyage-cream p-2.5 rounded-xl border border-voyage-border shadow-xs mb-2">
+                    <label class="block text-[11px] font-bold text-voyage-teal truncate" title="${itemName.replace(/"/g, '&quot;')}">${i + 1}. ${itemName}</label>
                     <div class="flex flex-col gap-2">
                         <div class="flex gap-2 items-center">
-                          <input type="text" placeholder="URL de la imagen" value="${currentPhoto}" onchange="updatePhotoUrl('activity', '${safeName}', this.value)" class="flex-1 bg-white border border-voyage-border rounded p-1 text-[11px] text-voyage-darkteal focus:border-voyage-terracotta outline-none">
-                          <img src="${currentPhoto}" class="w-9 h-9 rounded-lg object-cover border border-voyage-border shadow-xs" onerror="this.src='${window.samplePhotos ? window.samplePhotos[0] : ''}'">
+                            <input type="text" placeholder="${placeholder}" value="${displayValue}" onchange="updatePhotoUrl('${type}', decodeURIComponent('${encName}'), this.value)" class="flex-1 bg-white border border-voyage-border rounded p-1 text-[11px] text-voyage-darkteal focus:border-voyage-terracotta outline-none">
+                            <img src="${currentPhoto}" class="w-9 h-9 rounded-lg object-cover border border-voyage-border shadow-xs flex-shrink-0" onerror="this.src='${window.samplePhotos ? window.samplePhotos[0] : ''}'">
                         </div>
-                        <input type="file" accept="image/*" onchange="handleLocalPhotoUpload(event, 'activity', '${safeName}')" class="text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-voyage-teal      file:text-white">
-                    </div>
-               </div>
-            `;
-        }).join('');
-    }
-    html += '</div>';
-
-    // SECCIÓN 2: HOTELES
-    html += `
-        <div class="mb-4">
-            <h4 class="text-xs font-bold text-voyage-teal uppercase border-b border-voyage-border pb-1 mb-2 flex items-center gap-1.5 font-serif-title">
-                <i class="fa-solid fa-hotel"></i> Imágenes de Hospedaje / Hoteles (${allHotels.length})
-            </h4>
-    `;
-    if (allHotels.length === 0) {
-        html += '<p class="text-xs text-slate-400 italic">Sin hoteles cargados.</p>';
-    } else {
-        html += allHotels.map((hotelName, i) => {
-            const currentPhoto = (travelData.hotelPhotos && travelData.hotelPhotos[hotelName]) ? 
-                travelData.hotelPhotos[hotelName] : 
-                (window.samplePhotos ? window.samplePhotos[(i + 1) % window.samplePhotos.length] : '');
-            const safeName = hotelName.replace(/'/g, "\\'");
-
-            return `
-                <div class="space-y-1 bg-voyage-cream p-2.5 rounded-xl border border-voyage-border shadow-xs mb-2">
-                    <label class="block text-[11px] font-bold text-voyage-teal truncate" title="${hotelName}">${i + 1}. ${hotelName}</label>
-                    <div class="flex gap-2 items-center">
-                        <input type="text" value="${currentPhoto}" onchange="updatePhotoUrl('hotel', '${safeName}', this.value)" class="flex-1 bg-white border border-voyage-border rounded p-1 text-[11px] text-voyage-darkteal focus:border-voyage-terracotta outline-none">
-                        <img src="${currentPhoto}" class="w-9 h-9 rounded-lg object-cover border border-voyage-border shadow-xs" onerror="this.src='${window.samplePhotos ? window.samplePhotos[0] : ''}'">
+                        <input type="file" accept="image/*" onchange="handleLocalPhotoUpload(event, '${type}', decodeURIComponent('${encName}'))" class="text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-voyage-teal file:text-white">
                     </div>
                 </div>
-            `;
-        }).join('');
-    }
-    html += '</div>';
+                `;
+            }).join('');
+        }
+        out += '</div>';
+        return out;
+    };
 
-    // SECCIÓN 3: DESTINOS
-    html += `
-        <div>
-            <h4 class="text-xs font-bold text-voyage-sage uppercase border-b border-voyage-border pb-1 mb-2 flex items-center gap-1.5 font-serif-title">
-                <i class="fa-solid fa-location-dot"></i> Imágenes de Destinos (${allDestinations.length})
-            </h4>
-    `;
-    if (allDestinations.length === 0) {
-        html += '<p class="text-xs text-slate-400 italic">Sin destinos cargados.</p>';
-    } else {
-        html += allDestinations.map((destName, i) => {
-            const currentPhoto = (travelData.destinoPhotos && travelData.destinoPhotos[destName]) ? 
-                travelData.destinoPhotos[destName] : 
-                (window.samplePhotos ? window.samplePhotos[(i + 2) % window.samplePhotos.length] : '');
-            const safeName = destName.replace(/'/g, "\\'");
-
-            return `
-                <div class="space-y-1 bg-voyage-cream p-2.5 rounded-xl border border-voyage-border shadow-xs mb-2">
-                    <label class="block text-[11px] font-bold text-voyage-teal truncate" title="${destName}">${i + 1}. ${destName}</label>
-                    <div class="flex gap-2 items-center">
-                        <input type="text" value="${currentPhoto}" onchange="updatePhotoUrl('destino', '${safeName}', this.value)" class="flex-1 bg-white border border-voyage-border rounded p-1 text-[11px] text-voyage-darkteal focus:border-voyage-terracotta outline-none">
-                        <img src="${currentPhoto}" class="w-9 h-9 rounded-lg object-cover border border-voyage-border shadow-xs" onerror="this.src='${window.samplePhotos ? window.samplePhotos[0] : ''}'">
-                    </div>
-                </div>
-            `;
-        }).join('');
-    }
-    html += '</div>';
+    html += renderBlock('activity', allActivities, 'Imágenes de Actividades y Tours', 'fa-compass', travelData.activityPhotos, 0);
+    html += renderBlock('hotel', allHotels, 'Imágenes de Hospedaje / Hoteles', 'fa-hotel', travelData.hotelPhotos, 1);
+    html += renderBlock('destino', allDestinations, 'Imágenes de Destinos', 'fa-location-dot', travelData.destinoPhotos, 2);
 
     container.innerHTML = html;
 }
@@ -304,18 +260,29 @@ function updatePhotoUrl(type, itemName, url) {
         travelData.activityPhotos = travelData.activityPhotos || {};
         travelData.activityPhotos[itemName] = url;
     }
+    
+    // Forzamos la actualización de la cotización final
+    if (typeof updateClientProposalView === 'function') {
+        updateClientProposalView();
+    }
 }
+
 function handleLocalPhotoUpload(event, type, itemName) {
     const file = event.target && event.target.files ? event.target.files[0] : null;
     if (!file) return;
 
+    // Regresamos a FileReader, ya que es el protocolo más seguro para archivos locales (file:///)
     const reader = new FileReader();
     reader.onload = function(e) {
         const dataUrl = e.target.result;
+        
+        // 1. Guardamos la imagen
         updatePhotoUrl(type, itemName, dataUrl);
-        // Refrescamos la UI para que se muestre la nueva imagen inmediatamente
+        
+        // 2. Refrescamos la UI lateral de carga
         if (typeof buildActivityPhotosUI === 'function') buildActivityPhotosUI(); 
     };
+    
     reader.readAsDataURL(file);
 }
 
@@ -587,7 +554,7 @@ function renderItineraryByGroups() {
 
             return `
                 <div class="bg-white border border-voyage-border rounded-xl overflow-hidden flex flex-col sm:flex-row shadow-xs">
-                    <img src="${photo}" class="w-full sm:w-44 h-32 object-cover" onerror="this.src='${window.samplePhotos ? window.samplePhotos[0] : ''}'">
+                    <img src="${photo}" class="w-full sm:w-44 h-32 object-cover flex-shrink-0" onerror="this.src='${window.samplePhotos ? window.samplePhotos[0] : ''}'">
                     <div class="p-3.5 flex-1 flex flex-col justify-between space-y-2">
                         <div>
                             <div class="flex items-center justify-between">

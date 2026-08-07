@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>50 Mundos Voyage - Cotizador & Planner</title>
+    
+    <!-- Librerías Externas -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 
     <!-- Tailwind CSS CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -36,14 +43,50 @@
         }
     </script>
 
-    <!-- Librerías Externas -->
-    <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
-    
     <!-- CSS Modulado Propio -->
     <link rel="stylesheet" href="css/styles.css">
+
+    <style>
+        /* Regla estricta para evitar que elementos individuales se corten entre páginas */
+        .pdf-avoid-break,
+        #mapClientView,
+        #mapStaticWrapper {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+            -webkit-column-break-inside: avoid !important;
+        }
+
+        /* Evita que los títulos de sección queden huérfanos */
+        #clientViewContainer h3,
+        #clientViewContainer h4,
+        #clientViewContainer h5,
+        #clientViewContainer .border-b,
+        #clientViewContainer .border-b-2 {
+            break-after: avoid !important;
+            page-break-after: avoid !important;
+        }
+
+        /* Altura fija compacta para mapas */
+        #mapClientView,
+        #mapDestinos,
+        #mapRuta {
+            height: 210px !important;
+            max-height: 220px !important;
+            width: 100% !important;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        @media print {
+            #mapClientView,
+            #mapDestinos,
+            #mapRuta {
+                height: 200px !important;
+                break-inside: avoid !important;
+                page-break-inside: avoid !important;
+            }
+        }
+    </style>
 </head>
 
 <body class="h-full flex flex-col bg-voyage-cream text-voyage-darkteal overflow-x-hidden">
@@ -54,7 +97,7 @@
             
             <div class="flex items-center space-x-3">
                 <div class="h-12 flex items-center justify-center">
-                    <img src="assets/logo_50_mundos_marca.png" alt="50 Mundos Voyage" class="h-12 w-auto object-contain" onerror="this.onerror=null; this.src='https://placehold.co/180x50/FAF8F5/2C4445?text=50+MUNDOS+VOYAGE';">
+                    <img src="assets/logo_50_mundos_marca.png" alt="50 Mundos Voyage" class="h-12 w-auto object-contain" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'180\' height=\'50\'><rect width=\'100%\' height=\'100%\' fill=\'%23FAF8F5\'/></svg>';">
                 </div>
                 <div class="border-l border-voyage-sand/80 pl-3">
                     <h1 class="text-sm font-bold tracking-wider text-voyage-teal uppercase font-serif-title">
@@ -88,8 +131,8 @@
                     <i class="fa-solid fa-eye-slash text-voyage-terracotta" id="toggleCostsIcon"></i>
                     <span id="toggleCostsLabel">Modo viejero</span>
                 </button>
-                <button onclick="window.print()" class="no-print px-3 py-1.5 text-xs bg-voyage-teal hover:bg-voyage-darkteal text-white rounded-lg transition flex items-center gap-1.5 font-semibold shadow">
-                    <i class="fa-solid fa-print"></i> Imprimir / PDF
+                <button onclick="downloadPDF()" id="mainPdfBtn" class="no-print px-3 py-1.5 text-xs bg-voyage-teal hover:bg-voyage-darkteal text-white rounded-lg transition flex items-center gap-1.5 font-semibold shadow">
+                    <i class="fa-solid fa-download"></i> Descargar PDF
                 </button>
             </div>
         </div>
@@ -100,7 +143,6 @@
         <!-- TAB 1: SUBIR EXCEL -->
         <section id="tab-upload" class="tab-content space-y-6">
             <div class="bg-white border border-voyage-border rounded-2xl p-6 sm:p-10 shadow-md text-center relative overflow-hidden">
-                <!-- Ilustración sutil en la cabecera de carga (Globo y Nube) -->
                 <img src="assets/ELEMENTOS-MARCA-04.png" class="absolute -top-3 -right-3 w-24 h-auto opacity-20 pointer-events-none" onerror="this.style.display='none'">
 
                 <div class="max-w-xl mx-auto space-y-4 relative z-10">
@@ -360,62 +402,54 @@
                     </div>
                 </div>
                 <div class="flex items-center gap-2">
-                    <button onclick="window.print()" class="px-4 py-2 bg-voyage-terracotta hover:bg-rose-800 text-white font-bold text-xs rounded-lg transition shadow-md flex items-center gap-1.5">
-                        <i class="fa-solid fa-file-pdf"></i> Imprimir o Guardar como PDF
+                    <button onclick="downloadPDF()" id="tabPdfBtn" class="px-4 py-2 bg-voyage-terracotta hover:bg-rose-800 text-white font-bold text-xs rounded-lg transition shadow-md flex items-center gap-1.5">
+                        <i class="fa-solid fa-file-pdf"></i> Generar y Descargar PDF
                     </button>
                 </div>
             </div>
 
-            <!-- CONTENEDOR DOCUMENTO COTIZACIÓN CON TEXTURA DE PAPEL ARRUGA SUAVE Y ELEMENTOS DE MARCA -->
             <div id="clientViewContainer" class="paper-texture-bg text-voyage-darkteal rounded-2xl p-6 sm:p-10 shadow-xl space-y-8 max-w-4xl mx-auto border border-voyage-sand/80 relative overflow-hidden">
 
                 <!-- Header Banner con Logo -->
-                <div class="flex flex-col sm:flex-row justify-between items-start border-b-2 border-voyage-border pb-6 gap-4 relative z-10">
+                <div class="flex flex-col sm:flex-row justify-between items-start border-b-2 border-voyage-border pb-6 gap-4 relative z-10 pdf-avoid-break">
                     <div class="flex flex-col items-center justify-center space-y-4">
-                        <!-- Logo 50 Mundos (Más grande, pasamos de h-20 a h-32 o h-40 en pantallas grandes) -->
-                        <img src="assets/logo_50_mundos_marca.png" alt="50 Mundos Voyage" class="h-32 sm:h-40 w-auto object-contain" onerror="this.onerror=null; this.src='https://placehold.co/300x120/FAF8F5/2C4445?text=50+MUNDOS+VOYAGE';">
-    
-                        <!-- Certificaciones (Mantiene su tamaño original proporcionado) -->
-                        <img src="assets/certificaciones_50_mundos.png" alt="Certificaciones 50 Mundos" class="h-10 sm:h-12 w-auto object-contain" onerror="this.onerror=null; this.src='https://placehold.co/200x60/FAF8F5/2C4445?text=CERTIFICACIONES';">
+                        <img src="assets/logo_50_mundos_marca.png" alt="50 Mundos Voyage" class="h-32 sm:h-40 w-auto object-contain" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'300\' height=\'120\'><rect width=\'100%\' height=\'100%\' fill=\'%23FAF8F5\'/></svg>';">
+                        <img src="assets/certificaciones_50_mundos.png" alt="Certificaciones 50 Mundos" class="h-10 sm:h-12 w-auto object-contain" onerror="this.onerror=null; this.src='data:image/svg+xml;utf8,<svg xmlns=\'http://www.w3.org/2000/svg\' width=\'200\' height=\'60\'><rect width=\'100%\' height=\'100%\' fill=\'%23FAF8F5\'/></svg>';">
                     </div>
                     <div class="text-left sm:text-right text-xs text-slate-700 space-y-0.5 font-sans">
                         <p class="font-bold text-voyage-teal text-base font-serif-title" id="cv-tour-name">Cotización de Viaje Exclusiva</p>
     
-                         <div class="py-1.5">
-                         <!-- Nombre y Cargo -->
-                         <p id="cv-agent-name" class="font-bold text-slate-800 text-[13px]">Ileana Meza Mejía</p>
-                         <p class="text-[9px] text-slate-500 uppercase tracking-widest font-semibold mb-1.5">Exploradora Master & Fundadora</p>
-        
-                         <!-- Datos de Contacto -->
-                         <div class="space-y-0.5 text-[11px]">
-                        <p><i class="fa-solid fa-phone text-voyage-sage mr-1.5"></i>+52 55 3953 1306</p>
-                        <p><i class="fa-solid fa-envelope text-voyage-sage mr-1.5"></i>contactoileanameza@gmail.com</p>
-                        <p><i class="fa-brands fa-instagram text-voyage-sage mr-1"></i> <i class="fa-brands fa-facebook text-voyage-sage mr-1"></i>50 Mundos Voyage</p>
-                        <p class="text-[9px] text-slate-400 mt-1 max-w-[220px] sm:ml-auto leading-tight">
-                          Antonio Ancona 3133, CDMX México Cuajimalpa CP: 05000
-                         </p>
+                        <div class="py-1.5">
+                            <p id="cv-agent-name" class="font-bold text-slate-800 text-[13px]">Ileana Meza Mejía</p>
+                            <p class="text-[9px] text-slate-500 uppercase tracking-widest font-semibold mb-1.5">Exploradora Master & Fundadora</p>
+            
+                            <div class="space-y-0.5 text-[11px]">
+                                <p><i class="fa-solid fa-phone text-voyage-sage mr-1.5"></i>+52 55 3953 1306</p>
+                                <p><i class="fa-solid fa-envelope text-voyage-sage mr-1.5"></i>contactoileanameza@gmail.com</p>
+                                <p><i class="fa-brands fa-instagram text-voyage-sage mr-1"></i> <i class="fa-brands fa-facebook text-voyage-sage mr-1"></i>50 Mundos Voyage</p>
+                                <p class="text-[9px] text-slate-400 mt-1 max-w-[220px] sm:ml-auto leading-tight">
+                                    Antonio Ancona 3133, CDMX México Cuajimalpa CP: 05000
+                                </p>
                             </div>
-                            </div>
+                        </div>
 
-                         <!-- Fecha y Vigencia -->
-                       <p id="cv-date" class="pt-1">Fecha: <span id="cv-current-date" class="font-medium">--</span></p>
-                       <p class="text-[10px] text-voyage-terracotta font-semibold uppercase tracking-wide" id="cv-vigencia">Precios sujetos a cambio</p>
-                </div>
+                        <p id="cv-date" class="pt-1">Fecha: <span id="cv-current-date" class="font-medium">--</span></p>
+                        <p class="text-[10px] text-voyage-terracotta font-semibold uppercase tracking-wide" id="cv-vigencia">Precios sujetos a cambio</p>
+                    </div>
                 </div>
 
-                <!-- Saludo e Información de Bienvenida con Ilustración Integrada en Lateral -->
-                <div class="bg-white/85 backdrop-blur rounded-xl p-6 border border-voyage-sand/60 shadow-xs space-y-3 relative overflow-hidden">
+                <!-- Saludo e Información de Bienvenida -->
+                <div class="bg-white/85 backdrop-blur rounded-xl p-6 border border-voyage-sand/60 shadow-xs space-y-3 relative overflow-hidden pdf-avoid-break">
                     <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                         <div class="space-y-2 flex-1 pr-0 md:pr-4">
                             <h3 class="text-sm font-bold text-voyage-teal flex items-center gap-2 font-serif-title text-base">
-                                <i class="fa-solid fa-paper-plane text-voyage-terracotta"></i> Propuesta Preparada Para: <span id="cv-client-name" class="text-voyage-terracotta font-bold">Martha Vázquez Rivera</span>
+                                <i class="fa-solid fa-paper-plane text-voyage-terracotta"></i> Propuesta Preparada Para: <span id="cv-client-name" class="text-voyage-terracotta font-bold"></span>
                             </h3>
                             <p id="cv-greeting-text" class="text-xs text-slate-700 leading-relaxed italic">
                                 ¡Hola! Es un placer presentarle la propuesta de viaje diseñada exclusivamente para ti por 50 Mundos Voyage.
                             </p>
                         </div>
 
-                        <!-- Pareja de viajeros en tarjeta separada -->
                         <div class="flex-shrink-0 bg-voyage-paper/80 p-2 rounded-xl border border-voyage-border flex items-center justify-center">
                             <img src="assets/ELEMENTOS-MARCA-02.png" class="h-16 w-auto object-contain" onerror="this.style.display='none'">
                         </div>
@@ -424,15 +458,15 @@
                     <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-3 border-t border-voyage-border text-center text-xs">
                         <div class="bg-voyage-cream p-3 rounded-lg border border-voyage-border shadow-xs">
                             <p class="text-[10px] uppercase text-slate-500 font-semibold tracking-wider">Pasajeros</p>
-                            <p class="font-bold text-voyage-teal text-sm" id="cv-total-pax">2 Personas</p>
+                            <p class="font-bold text-voyage-teal text-sm" id="cv-total-pax">0 Pasajeros</p>
                         </div>
                         <div class="bg-voyage-cream p-3 rounded-lg border border-voyage-border shadow-xs">
                             <p class="text-[10px] uppercase text-slate-500 font-semibold tracking-wider">Destinos</p>
-                            <p class="font-bold text-voyage-teal text-sm" id="cv-total-destinos">México, Cancún</p>
+                            <p class="font-bold text-voyage-teal text-sm" id="cv-total-destinos">--</p>
                         </div>
                         <div class="bg-voyage-cream p-3 rounded-lg border border-voyage-border shadow-xs">
                             <p class="text-[10px] uppercase text-slate-500 font-semibold tracking-wider">Duración Total</p>
-                            <p class="font-bold text-voyage-teal text-sm" id="cv-total-days">3 Días</p>
+                            <p class="font-bold text-voyage-teal text-sm" id="cv-total-days">0 Días</p>
                         </div>
                         <div class="bg-voyage-cream p-3 rounded-lg border border-voyage-border shadow-xs">
                             <p class="text-[10px] uppercase text-slate-500 font-semibold tracking-wider">Inversión Total</p>
@@ -441,8 +475,8 @@
                     </div>
                 </div>
 
-                <!-- Sección Mapa de Ruta con Brújula Ilustrada en Encabezado -->
-                <div class="space-y-3">
+                <!-- Sección Mapa de Ruta -->
+                <div class="space-y-3 pdf-avoid-break">
                     <div class="flex items-center justify-between border-b border-voyage-border pb-2">
                         <h3 class="text-base font-bold text-voyage-teal flex items-center gap-2 font-serif-title">
                             <i class="fa-solid fa-map text-voyage-sage"></i> Mapa del Destino y Ruta Programada
@@ -450,43 +484,16 @@
                         <img src="assets/ELEMENTOS-MARCA-03.png" class="h-8 w-auto object-contain" onerror="this.style.display='none'">
                     </div>
                     <div id="mapClientView" class="border border-voyage-border shadow-sm rounded-xl overflow-hidden"></div>
+                    <div id="cv-map-legend" class="flex flex-wrap items-center gap-2 pt-1 text-xs"></div>
                 </div>
 
-                <!-- Sección Vuelos con Maleta Ilustrada en Encabezado -->
-                <div class="space-y-3">
-                    <div class="flex items-center justify-between border-b border-voyage-border pb-2">
-                        <h3 class="text-base font-bold text-voyage-teal flex items-center gap-2 font-serif-title">
-                            <i class="fa-solid fa-plane-departure text-voyage-terracotta"></i> Vuelos Incluidos
-                        </h3>
-                        <img src="assets/ELEMENTOS-MARCA-06.png" class="h-8 w-auto object-contain" onerror="this.style.display='none'">
-                    </div>
-                    <div id="cv-vuelos-container" class="grid grid-cols-1 gap-3 text-xs"></div>
-                </div>
-
-                <!-- Hospedaje Seleccionado -->
-                <div class="space-y-3">
-                    <div class="flex items-center justify-between border-b border-voyage-border pb-2">
-                        <h3 class="text-base font-bold text-voyage-teal flex items-center gap-2 font-serif-title">
-                            <i class="fa-solid fa-hotel text-voyage-sage"></i> Hospedaje Seleccionado
-                        </h3>
-                        <img src="assets/ELEMENTOS-MARCA-02.jpg" class="h-8 w-auto object-contain rounded" onerror="this.style.display='none'">
-                    </div>
-                    <div id="cv-hospedaje-container" class="grid grid-cols-1 gap-3 text-xs"></div>
-                </div>
-
-                <!-- Itinerario Organizado por Grupo y Pasajero -->
-                <div class="space-y-4">
-                    <div class="flex items-center justify-between border-b border-voyage-border pb-2">
-                        <h3 class="text-base font-bold text-voyage-teal flex items-center gap-2 font-serif-title">
-                            <i class="fa-solid fa-compass text-voyage-terracotta"></i> Itinerario de Experiencias y Actividades
-                        </h3>
-                        <img src="assets/ELEMENTOS-MARCA-07.png" class="h-10 w-auto object-contain" onerror="this.style.display='none'">
-                    </div>
-                    <div id="cv-itinerario-container" class="space-y-4 text-xs"></div>
-                </div>
+                <!-- Contenedores dinámicos (Header + Primer elemento unidos en render) -->
+                <div id="cv-vuelos-container" class="space-y-3"></div>
+                <div id="cv-hospedaje-container" class="space-y-3"></div>
+                <div id="cv-itinerario-container" class="space-y-4"></div>
 
                 <!-- Inclusiones y Políticas -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-voyage-border text-xs">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-voyage-border text-xs pdf-avoid-break">
                     <div class="bg-voyage-sky/40 p-4 rounded-xl border border-voyage-sage/30 space-y-2">
                         <h4 class="font-bold text-voyage-teal flex items-center gap-1.5 font-serif-title text-sm">
                             <i class="fa-solid fa-check-double text-voyage-sage"></i> Su Viaje Incluye:
@@ -502,7 +509,7 @@
                 </div>
 
                 <!-- Cierre con Ilustración de Viajera y Eslogan -->
-                <div class="pt-6 border-t border-voyage-border text-center text-xs text-slate-600 space-y-2 relative">
+                <div class="pt-6 border-t border-voyage-border text-center text-xs text-slate-600 space-y-2 relative pdf-avoid-break">
                     <img src="assets/datos_pago_50_mundos.jpeg" class="mx-auto h-40 w-auto object-contain" onerror="this.style.display='none'">
                 </div>
             </div>
@@ -512,9 +519,9 @@
     <!-- Scripts Modulares -->
     <script src="js/config.js"></script>
     <script src="js/state.js"></script>
+    <script src="js/ui-render.js"></script>
     <script src="js/excel-parser.js"></script>
     <script src="js/map-engine.js"></script>
-    <script src="js/ui-render.js"></script>
     <script src="js/main.js"></script>
 </body>
 </html>

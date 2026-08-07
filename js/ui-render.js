@@ -35,159 +35,184 @@ function getAllUniqueDestinations() {
 }
 
 function renderTables() {
-    // Destinos
-    document.getElementById('count-destinos').innerText = travelData.destinos.length;
-    document.getElementById('table-destinos-body').innerHTML = travelData.destinos.map(d => `
-        <tr class="hover:bg-voyage-paper/60">
-            <td class="p-2 font-medium text-voyage-teal">${d.pais}</td>
-            <td class="p-2 text-voyage-terracotta font-semibold">${d.ciudad}</td>
-            <td class="p-2">${d.llegada}</td>
-            <td class="p-2">${d.partida}</td>
-            <td class="p-2"><span class="bg-voyage-sand/30 px-2 py-0.5 rounded text-voyage-darkteal font-medium">${d.dias} días</span></td>
-        </tr>
-    `).join('') || '<tr><td colspan="5" class="p-2 text-slate-400 italic">Sin datos de destinos. Sube tu plantilla Excel.</td></tr>';
-
-    // Personas
-    document.getElementById('count-personas').innerText = travelData.personas.length;
-    document.getElementById('table-personas-body').innerHTML = travelData.personas.map(p => {
-        // Lógica Modo Agente: Construir etiquetas visuales si showInternalCosts es true
-        let extraInfo = '';
-        if (typeof showInternalCosts !== 'undefined' && showInternalCosts) {
-            let tags = [];
-            if (p.genero) tags.push(`<span class="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded shadow-xs"><i class="fa-solid fa-venus-mars"></i> ${p.genero}</span>`);
-            if (p.contacto) tags.push(`<span class="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded shadow-xs"><i class="fa-solid fa-phone"></i> ${p.contacto}</span>`);
-            if (p.alergias && p.alergias.toLowerCase() !== 'ninguna' && p.alergias.toLowerCase() !== 'n/a') {
-                tags.push(`<span class="bg-red-50 text-red-600 font-bold px-1.5 py-0.5 rounded shadow-xs"><i class="fa-solid fa-notes-medical"></i> ${p.alergias}</span>`);
-            }
-            if (tags.length > 0) {
-                extraInfo = `<div class="flex gap-1.5 mt-1.5 text-[10px]">${tags.join('')}</div>`;
-            }
-        }
-        
-        return `
-        <tr class="hover:bg-voyage-paper/60">
-            <td class="p-2">
-                <div class="font-medium text-voyage-teal">${p.nombre}</div>
-                ${extraInfo}
-            </td>
-            <td class="p-2">${p.edad} años</td>
-            <td class="p-2"><span class="bg-voyage-sky text-voyage-teal px-2 py-0.5 rounded text-[10px] font-semibold">${p.categoria}</span></td>
-            <td class="p-2">Grupo ${p.grupo}</td>
-            <td class="p-2 text-slate-500">${p.nivel}</td>
-        </tr>
-        `;
-    }).join('') || '<tr><td colspan="5" class="p-2 text-slate-400 italic">Sin datos de pasajeros.</td></tr>';
-
-    // Vuelos
-    document.getElementById('count-vuelos').innerText = travelData.vuelos.length;
-    document.getElementById('table-vuelos-head').innerHTML = `
-        <tr>
-            <th class="p-2">Pasajero</th>
-            <th class="p-2">Ruta</th>
-            <th class="p-2">Aerolínea</th>
-            <th class="p-2">Equipaje</th>
-            ${showInternalCosts ? '<th class="p-2 bg-emerald-100 text-emerald-900">Costo 50 Mundos</th>' : ''}
-            ${showInternalCosts ? '<th class="p-2 bg-emerald-100 text-emerald-900">Ganancia</th>' : ''}
-            <th class="p-2">Precio Cliente</th>
-        </tr>
-    `;
-
-    document.getElementById('table-vuelos-body').innerHTML = travelData.vuelos.map(v => {
-        const ganancia = Number(v.precioCliente || 0) - Number(v.costoNeto || 0);
-        return `
+    const countDestinos = document.getElementById('count-destinos');
+    const tableDestinos = document.getElementById('table-destinos-body');
+    if (countDestinos && travelData.destinos) countDestinos.innerText = travelData.destinos.length;
+    if (tableDestinos && travelData.destinos) {
+        tableDestinos.innerHTML = travelData.destinos.map(d => `
             <tr class="hover:bg-voyage-paper/60">
-                <td class="p-2 font-medium text-voyage-teal">${v.pasajero}</td>
-                <td class="p-2">${v.salida} ➔ ${v.destino}</td>
-                <td class="p-2">${v.aerolinea}</td>
-                <td class="p-2 text-slate-500">${v.equipaje}</td>
-                ${showInternalCosts ? `<td class="p-2 font-mono text-slate-600 bg-emerald-50/50">$${Number(v.costoNeto).toLocaleString()}</td>` : ''}
-                ${showInternalCosts ? `<td class="p-2 font-mono text-emerald-700 font-bold bg-emerald-50/50">+$${ganancia.toLocaleString()}</td>` : ''}
-                <td class="p-2 font-bold text-voyage-terracotta">$${Number(v.precioCliente).toLocaleString()} MXN</td>
+                <td class="p-2 font-medium text-voyage-teal">${d.pais || ''}</td>
+                <td class="p-2 text-voyage-terracotta font-semibold">${d.ciudad || ''}</td>
+                <td class="p-2">${d.llegada || ''}</td>
+                <td class="p-2">${d.partida || ''}</td>
+                <td class="p-2"><span class="bg-voyage-sand/30 px-2 py-0.5 rounded text-voyage-darkteal font-medium">${d.dias || 0} días</span></td>
+            </tr>
+        `).join('') || '<tr><td colspan="5" class="p-2 text-slate-400 italic">Sin datos de destinos. Sube tu plantilla Excel.</td></tr>';
+    }
+
+    const countPersonas = document.getElementById('count-personas');
+    const tablePersonas = document.getElementById('table-personas-body');
+    if (countPersonas && travelData.personas) countPersonas.innerText = travelData.personas.length;
+    if (tablePersonas && travelData.personas) {
+        tablePersonas.innerHTML = travelData.personas.map(p => {
+            let extraInfo = '';
+            if (typeof showInternalCosts !== 'undefined' && showInternalCosts) {
+                let tags = [];
+                if (p.genero) tags.push(`<span class="bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded shadow-xs"><i class="fa-solid fa-venus-mars"></i> ${p.genero}</span>`);
+                if (p.contacto) tags.push(`<span class="bg-blue-50 text-blue-600 px-1.5 py-0.5 rounded shadow-xs"><i class="fa-solid fa-phone"></i> ${p.contacto}</span>`);
+                if (p.alergias && p.alergias.toLowerCase() !== 'ninguna' && p.alergias.toLowerCase() !== 'n/a') {
+                    tags.push(`<span class="bg-red-50 text-red-600 font-bold px-1.5 py-0.5 rounded shadow-xs"><i class="fa-solid fa-notes-medical"></i> ${p.alergias}</span>`);
+                }
+                if (tags.length > 0) {
+                    extraInfo = `<div class="flex gap-1.5 mt-1.5 text-[10px]">${tags.join('')}</div>`;
+                }
+            }
+            
+            return `
+            <tr class="hover:bg-voyage-paper/60">
+                <td class="p-2">
+                    <div class="font-medium text-voyage-teal">${p.nombre || ''}</div>
+                    ${extraInfo}
+                </td>
+                <td class="p-2">${p.edad || ''}</td>
+                <td class="p-2"><span class="bg-voyage-sky text-voyage-teal px-2 py-0.5 rounded text-[10px] font-semibold">${p.categoria || ''}</span></td>
+                <td class="p-2">Grupo ${p.grupo || 1}</td>
+                <td class="p-2 text-slate-500">${p.nivel || ''}</td>
+            </tr>
+            `;
+        }).join('') || '<tr><td colspan="5" class="p-2 text-slate-400 italic">Sin datos de pasajeros.</td></tr>';
+    }
+
+    const countVuelos = document.getElementById('count-vuelos');
+    const tableVuelosHead = document.getElementById('table-vuelos-head');
+    const tableVuelosBody = document.getElementById('table-vuelos-body');
+    if (countVuelos && travelData.vuelos) countVuelos.innerText = travelData.vuelos.length;
+    if (tableVuelosHead) {
+        tableVuelosHead.innerHTML = `
+            <tr>
+                <th class="p-2">Terminal / Empresa</th>
+                <th class="p-2">Pasajero</th>
+                <th class="p-2">Ruta</th>
+                <th class="p-2">Horarios (Salida ➔ Llegada)</th>
+                <th class="p-2">Equipaje / Escalas</th>
+                ${showInternalCosts ? '<th class="p-2 bg-emerald-100 text-emerald-900">Costo 50 Mundos</th>' : ''}
+                ${showInternalCosts ? '<th class="p-2 bg-emerald-100 text-emerald-900">Ganancia</th>' : ''}
+                <th class="p-2">Precio Cliente</th>
             </tr>
         `;
-    }).join('') || `<tr><td colspan="${showInternalCosts ? 7 : 5}" class="p-2 text-slate-400 italic">Sin vuelos registrados.</td></tr>`;
+    }
+    if (tableVuelosBody && travelData.vuelos) {
+        tableVuelosBody.innerHTML = travelData.vuelos.map(v => {
+            const ganancia = Number(v.precioCliente || 0) - Number(v.costoNeto || 0);
+            return `
+                <tr class="hover:bg-voyage-paper/60">
+                    <td class="p-2">
+                        <div class="font-medium text-voyage-teal">${v.terminal || ''}</div>
+                        <div class="text-[10px] text-slate-500">${v.medioTransporte || ''} ${v.empresa ? '- ' + v.empresa : ''}</div>
+                    </td>
+                    <td class="p-2 font-medium text-voyage-teal">${v.pasajero || ''}</td>
+                    <td class="p-2">${v.salida || ''} ➔ ${v.destino || ''} <span class="text-[10px] text-slate-400">(${v.redondo === 'Sí' ? 'Redondo' : 'Sencillo'})</span></td>
+                    <td class="p-2 text-[11px]">
+                        <div><b>Sale:</b> ${v.fechaDespegue || ''} ${v.horaDespegue || ''}</div>
+                        <div><b>Llega:</b> ${v.fechaAterrizaje || ''} ${v.horaAterrizaje || ''}</div>
+                    </td>
+                    <td class="p-2 text-slate-500 text-[11px]">${v.equipaje || ''} <br><span class="text-[10px] text-slate-400">${v.escalas || ''}</span></td>
+                    ${showInternalCosts ? `<td class="p-2 font-mono text-slate-600 bg-emerald-50/50">$${Number(v.costoNeto || 0).toLocaleString()}</td>` : ''}
+                    ${showInternalCosts ? `<td class="p-2 font-mono text-emerald-700 font-bold bg-emerald-50/50">+$${ganancia.toLocaleString()}</td>` : ''}
+                    <td class="p-2 font-bold text-voyage-terracotta">$${Number(v.precioCliente || 0).toLocaleString()} MXN</td>
+                </tr>
+            `;
+        }).join('') || `<tr><td colspan="${showInternalCosts ? 8 : 6}" class="p-2 text-slate-400 italic">Sin transportes o vuelos registrados.</td></tr>`;
+    }
 
-    // Hospedaje
-    document.getElementById('count-hospedaje').innerText = travelData.hospedaje.length;
-    document.getElementById('table-hospedaje-head').innerHTML = `
-        <tr>
-            <th class="p-2">Hotel</th>
-            <th class="p-2">CheckIn</th>
-            <th class="p-2">Noches</th>
-            <th class="p-2">Plan</th>
-            ${showInternalCosts ? '<th class="p-2 bg-emerald-100 text-emerald-900">Costo 50 Mundos</th>' : ''}
-            ${showInternalCosts ? '<th class="p-2 bg-emerald-100 text-emerald-900">Ganancia</th>' : ''}
-            <th class="p-2">Precio Cliente</th>
-        </tr>
-    `;
-
-    document.getElementById('table-hospedaje-body').innerHTML = travelData.hospedaje.map(h => {
-        const ganancia = Number(h.precioCliente || 0) - Number(h.costoNeto || 0);
-        return `
-            <tr class="hover:bg-voyage-paper/60">
-                <td class="p-2 font-medium text-voyage-teal">${h.hotel}</td>
-                <td class="p-2">${h.checkIn}</td>
-                <td class="p-2">${h.noches} noches</td>
-                <td class="p-2 text-voyage-sage font-semibold">${h.todoIncluido}</td>
-                ${showInternalCosts ? `<td class="p-2 font-mono text-slate-600 bg-emerald-50/50">$${Number(h.costoNeto).toLocaleString()}</td>` : ''}
-                ${showInternalCosts ? `<td class="p-2 font-mono text-emerald-700 font-bold bg-emerald-50/50">+$${ganancia.toLocaleString()}</td>` : ''}
-                <td class="p-2 font-bold text-voyage-terracotta">$${Number(h.precioCliente).toLocaleString()} MXN</td>
+    const countHospedaje = document.getElementById('count-hospedaje');
+    const tableHospedajeHead = document.getElementById('table-hospedaje-head');
+    const tableHospedajeBody = document.getElementById('table-hospedaje-body');
+    if (countHospedaje && travelData.hospedaje) countHospedaje.innerText = travelData.hospedaje.length;
+    if (tableHospedajeHead) {
+        tableHospedajeHead.innerHTML = `
+            <tr>
+                <th class="p-2">Hotel</th>
+                <th class="p-2">CheckIn</th>
+                <th class="p-2">Noches</th>
+                <th class="p-2">Plan</th>
+                ${showInternalCosts ? '<th class="p-2 bg-emerald-100 text-emerald-900">Costo 50 Mundos</th>' : ''}
+                ${showInternalCosts ? '<th class="p-2 bg-emerald-100 text-emerald-900">Ganancia</th>' : ''}
+                <th class="p-2">Precio Cliente</th>
             </tr>
         `;
-    }).join('') || `<tr><td colspan="${showInternalCosts ? 7 : 5}" class="p-2 text-slate-400 italic">Sin hospedaje registrado.</td></tr>`;
+    }
+    if (tableHospedajeBody && travelData.hospedaje) {
+        tableHospedajeBody.innerHTML = travelData.hospedaje.map(h => {
+            const ganancia = Number(h.precioCliente || 0) - Number(h.costoNeto || 0);
+            return `
+                <tr class="hover:bg-voyage-paper/60">
+                    <td class="p-2 font-medium text-voyage-teal">${h.hotel || ''}</td>
+                    <td class="p-2">${h.checkIn || ''}</td>
+                    <td class="p-2">${h.noches || 0} noches</td>
+                    <td class="p-2 text-voyage-sage font-semibold">${h.todoIncluido || ''}</td>
+                    ${showInternalCosts ? `<td class="p-2 font-mono text-slate-600 bg-emerald-50/50">$${Number(h.costoNeto || 0).toLocaleString()}</td>` : ''}
+                    ${showInternalCosts ? `<td class="p-2 font-mono text-emerald-700 font-bold bg-emerald-50/50">+$${ganancia.toLocaleString()}</td>` : ''}
+                    <td class="p-2 font-bold text-voyage-terracotta">$${Number(h.precioCliente || 0).toLocaleString()} MXN</td>
+                </tr>
+            `;
+        }).join('') || `<tr><td colspan="${showInternalCosts ? 7 : 5}" class="p-2 text-slate-400 italic">Sin hospedaje registrado.</td></tr>`;
+    }
 
-// Actividades
-    document.getElementById('count-actividades').innerText = travelData.actividades.length;
-    document.getElementById('table-actividades-head').innerHTML = `
-        <tr>
-            <th class="p-2">Fecha</th>
-            <th class="p-2">Horario</th>
-            <th class="p-2">Actividad</th>
-            <th class="p-2">Lugar / Destino</th>
-            <th class="p-2">Duración</th>
-            ${showInternalCosts ? '<th class="p-2 bg-emerald-100 text-emerald-900">Costo 50 Mundos</th>' : ''}
-            ${showInternalCosts ? '<th class="p-2 bg-emerald-100 text-emerald-900">Ganancia</th>' : ''}
-            <th class="p-2">Precio Cliente</th>
-        </tr>
-    `;
-
-    document.getElementById('table-actividades-body').innerHTML = travelData.actividades.map(a => {
-        const ganancia = Number(a.precioCliente || 0) - Number(a.costoNeto || 0);
-        
-        // Cruzamos la data con itinerario por si ahí se detallaron las horas de salida/llegada
-        let hLlegada = a.hora_llegada;
-        let hSalida = a.hora_salida;
-        if (Array.isArray(travelData.itinerario)) {
-            const match = travelData.itinerario.find(i => i.actividad === a.actividad && i.fecha === a.fecha);
-            if (match) {
-                if (match.hora_llegada && match.hora_llegada !== '09:00') hLlegada = match.hora_llegada;
-                if (match.hora_salida && match.hora_salida !== '09:00') hSalida = match.hora_salida;
+    const countActividades = document.getElementById('count-actividades');
+    const tableActividadesHead = document.getElementById('table-actividades-head');
+    const tableActividadesBody = document.getElementById('table-actividades-body');
+    if (countActividades && travelData.actividades) countActividades.innerText = travelData.actividades.length;
+    if (tableActividadesHead) {
+        tableActividadesHead.innerHTML = `
+            <tr>
+                <th class="p-2">Fecha</th>
+                <th class="p-2">Horario</th>
+                <th class="p-2">Actividad</th>
+                <th class="p-2">Lugar / Destino</th>
+                <th class="p-2">Duración</th>
+                ${showInternalCosts ? '<th class="p-2 bg-emerald-100 text-emerald-900">Costo 50 Mundos</th>' : ''}
+                ${showInternalCosts ? '<th class="p-2 bg-emerald-100 text-emerald-900">Ganancia</th>' : ''}
+                <th class="p-2">Precio Cliente</th>
+            </tr>
+        `;
+    }
+    if (tableActividadesBody && travelData.actividades) {
+        tableActividadesBody.innerHTML = travelData.actividades.map(a => {
+            const ganancia = Number(a.precioCliente || 0) - Number(a.costoNeto || 0);
+            let hLlegada = a.hora_llegada;
+            let hSalida = a.hora_salida;
+            if (Array.isArray(travelData.itinerario)) {
+                const match = travelData.itinerario.find(i => i.actividad === a.actividad && i.fecha === a.fecha);
+                if (match) {
+                    if (match.hora_llegada) hLlegada = match.hora_llegada;
+                    if (match.hora_salida) hSalida = match.hora_salida;
+                }
             }
-        }
 
-        // Lógica de visualización de horas para la tabla
-        let displayTime = a.hora;
-        if (hSalida && hLlegada && hSalida !== '09:00' && hLlegada !== '09:00') {
-            displayTime = `<div class="text-[11px] leading-tight"><span class="text-slate-400 font-bold">llegada:</span> ${hLlegada}<br><span class="text-slate-400 font-bold">salida:</span> ${hSalida}</div>`;
-        } else if (hSalida && hSalida !== '09:00') {
-            displayTime = `<div class="text-[11px]"><span class="text-slate-400 font-bold">salida:</span> ${hSalida}</div>`;
-        } else if (hLlegada && hLlegada !== '09:00') {
-            displayTime = `<div class="text-[11px]"><span class="text-slate-400 font-bold">llegada:</span> ${hLlegada}</div>`;
-        }
+            let displayTime = a.hora || '';
+            if (hSalida && hLlegada) {
+                displayTime = `<div class="text-[11px] leading-tight"><span class="text-slate-400 font-bold">llegada:</span> ${hLlegada}<br><span class="text-slate-400 font-bold">salida:</span> ${hSalida}</div>`;
+            } else if (hSalida) {
+                displayTime = `<div class="text-[11px]"><span class="text-slate-400 font-bold">salida:</span> ${hSalida}</div>`;
+            } else if (hLlegada) {
+                displayTime = `<div class="text-[11px]"><span class="text-slate-400 font-bold">llegada:</span> ${hLlegada}</div>`;
+            }
 
-        return `
-            <tr class="hover:bg-voyage-paper/60">
-                <td class="p-2 font-medium text-voyage-sage">${a.fecha}</td>
-                <td class="p-2">${displayTime}</td>
-                <td class="p-2 font-semibold text-voyage-teal">${a.actividad}</td>
-                <td class="p-2 text-slate-500">${a.lugar} (${a.destino})</td>
-                <td class="p-2">${a.duracion}</td>
-                ${showInternalCosts ? `<td class="p-2 font-mono text-slate-600 bg-emerald-50/50">$${Number(a.costoNeto).toLocaleString()}</td>` : ''}
-                ${showInternalCosts ? `<td class="p-2 font-mono text-emerald-700 font-bold bg-emerald-50/50">+$${ganancia.toLocaleString()}</td>` : ''}
-                <td class="p-2 font-bold text-voyage-terracotta">$${Number(a.precioCliente).toLocaleString()} MXN</td>
-            </tr>
-        `;
-    }).join('') || `<tr><td colspan="${showInternalCosts ? 8 : 6}" class="p-2 text-slate-400 italic">Sin actividades registradas.</td></tr>`;
+            return `
+                <tr class="hover:bg-voyage-paper/60">
+                    <td class="p-2 font-medium text-voyage-sage">${a.fecha || ''}</td>
+                    <td class="p-2">${displayTime}</td>
+                    <td class="p-2 font-semibold text-voyage-teal">${a.actividad || ''}</td>
+                    <td class="p-2 text-slate-500">${a.lugar || ''} ${a.destino ? '(' + a.destino + ')' : ''}</td>
+                    <td class="p-2">${a.duracion || ''}</td>
+                    ${showInternalCosts ? `<td class="p-2 font-mono text-slate-600 bg-emerald-50/50">$${Number(a.costoNeto || 0).toLocaleString()}</td>` : ''}
+                    ${showInternalCosts ? `<td class="p-2 font-mono text-emerald-700 font-bold bg-emerald-50/50">+$${ganancia.toLocaleString()}</td>` : ''}
+                    <td class="p-2 font-bold text-voyage-terracotta">$${Number(a.precioCliente || 0).toLocaleString()} MXN</td>
+                </tr>
+            `;
+        }).join('') || `<tr><td colspan="${showInternalCosts ? 8 : 6}" class="p-2 text-slate-400 italic">Sin actividades registradas.</td></tr>`;
+    }
 }
 
 function buildActivityPhotosUI() {
@@ -200,8 +225,7 @@ function buildActivityPhotosUI() {
 
     let html = '';
 
-    // Función interna para renderizar las secciones de forma limpia y a prueba de errores
-    const renderBlock = (type, list, title, icon, photosObj, sampleOffset) => {
+    const renderBlock = (type, list, title, icon, photosObj) => {
         let out = `
             <div class="mb-4">
                 <h4 class="text-xs font-bold text-voyage-teal uppercase border-b border-voyage-border pb-1 mb-2 flex items-center gap-1.5 font-serif-title">
@@ -212,17 +236,12 @@ function buildActivityPhotosUI() {
             out += `<p class="text-xs text-slate-400 italic">Sin datos cargados.</p>`;
         } else {
             out += list.map((itemName, i) => {
-                const currentPhoto = (photosObj && photosObj[itemName]) ? 
-                    photosObj[itemName] : 
-                    (window.samplePhotos ? window.samplePhotos[(i + sampleOffset) % window.samplePhotos.length] : '');
-                
-                // CLAVE 1: Evitar inyectar millones de caracteres en el DOM previniendo el colapso
+                const currentPhoto = (photosObj && photosObj[itemName]) ? photosObj[itemName] : '';
                 const isBase64 = currentPhoto && currentPhoto.length > 500;
                 const displayValue = isBase64 ? '' : currentPhoto.replace(/"/g, '&quot;');
                 const placeholder = isBase64 ? 'Imagen cargada desde archivo local' : 'URL de la imagen';
-                
-                // CLAVE 2: Encodear el string para que comillas y saltos de línea no rompan el HTML
                 const encName = encodeURIComponent(itemName);
+                const imgThumb = currentPhoto ? `<img src="${currentPhoto}" class="w-9 h-9 rounded-lg object-cover border border-voyage-border shadow-xs flex-shrink-0">` : '';
 
                 return `
                 <div class="space-y-1 bg-voyage-cream p-2.5 rounded-xl border border-voyage-border shadow-xs mb-2">
@@ -230,7 +249,7 @@ function buildActivityPhotosUI() {
                     <div class="flex flex-col gap-2">
                         <div class="flex gap-2 items-center">
                             <input type="text" placeholder="${placeholder}" value="${displayValue}" onchange="updatePhotoUrl('${type}', decodeURIComponent('${encName}'), this.value)" class="flex-1 bg-white border border-voyage-border rounded p-1 text-[11px] text-voyage-darkteal focus:border-voyage-terracotta outline-none">
-                            <img src="${currentPhoto}" class="w-9 h-9 rounded-lg object-cover border border-voyage-border shadow-xs flex-shrink-0" onerror="this.src='${window.samplePhotos ? window.samplePhotos[0] : ''}'">
+                            ${imgThumb}
                         </div>
                         <input type="file" accept="image/*" onchange="handleLocalPhotoUpload(event, '${type}', decodeURIComponent('${encName}'))" class="text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-voyage-teal file:text-white">
                     </div>
@@ -242,9 +261,9 @@ function buildActivityPhotosUI() {
         return out;
     };
 
-    html += renderBlock('activity', allActivities, 'Imágenes de Actividades y Tours', 'fa-compass', travelData.activityPhotos, 0);
-    html += renderBlock('hotel', allHotels, 'Imágenes de Hospedaje / Hoteles', 'fa-hotel', travelData.hotelPhotos, 1);
-    html += renderBlock('destino', allDestinations, 'Imágenes de Destinos', 'fa-location-dot', travelData.destinoPhotos, 2);
+    html += renderBlock('activity', allActivities, 'Imágenes de Actividades y Tours', 'fa-compass', travelData.activityPhotos);
+    html += renderBlock('hotel', allHotels, 'Imágenes de Hospedaje / Hoteles', 'fa-hotel', travelData.hotelPhotos);
+    html += renderBlock('destino', allDestinations, 'Imágenes de Destinos', 'fa-location-dot', travelData.destinoPhotos);
 
     container.innerHTML = html;
 }
@@ -261,7 +280,6 @@ function updatePhotoUrl(type, itemName, url) {
         travelData.activityPhotos[itemName] = url;
     }
     
-    // Forzamos la actualización de la cotización final
     if (typeof updateClientProposalView === 'function') {
         updateClientProposalView();
     }
@@ -271,15 +289,10 @@ function handleLocalPhotoUpload(event, type, itemName) {
     const file = event.target && event.target.files ? event.target.files[0] : null;
     if (!file) return;
 
-    // Regresamos a FileReader, ya que es el protocolo más seguro para archivos locales (file:///)
     const reader = new FileReader();
     reader.onload = function(e) {
         const dataUrl = e.target.result;
-        
-        // 1. Guardamos la imagen
         updatePhotoUrl(type, itemName, dataUrl);
-        
-        // 2. Refrescamos la UI lateral de carga
         if (typeof buildActivityPhotosUI === 'function') buildActivityPhotosUI(); 
     };
     
@@ -287,23 +300,6 @@ function handleLocalPhotoUpload(event, type, itemName) {
 }
 
 function autoAssignUnsplashPhotos() {
-    travelData.activityPhotos = travelData.activityPhotos || {};
-    travelData.hotelPhotos = travelData.hotelPhotos || {};
-    travelData.destinoPhotos = travelData.destinoPhotos || {};
-
-    const samples = window.samplePhotos || [];
-    getAllUniqueActivities().forEach((act, i) => {
-        travelData.activityPhotos[act] = samples[i % samples.length];
-    });
-
-    getAllUniqueHotels().forEach((hotel, i) => {
-        travelData.hotelPhotos[hotel] = samples[(i + 1) % samples.length];
-    });
-
-    getAllUniqueDestinations().forEach((dest, i) => {
-        travelData.destinoPhotos[dest] = samples[(i + 2) % samples.length];
-    });
-
     buildActivityPhotosUI();
 }
 
@@ -323,22 +319,22 @@ function updateClientProposalView() {
     const vigencia = vigenciaEl ? vigenciaEl.value : '';
 
     if (document.getElementById('cv-client-name')) document.getElementById('cv-client-name').innerText = clientName;
-    if (document.getElementById('cv-agent-name')) document.getElementById('cv-agent-name').innerText = `Atendido por: ${agentName}`;
+    if (document.getElementById('cv-agent-name')) document.getElementById('cv-agent-name').innerText = agentName ? `Atendido por: ${agentName}` : '';
     if (document.getElementById('cv-greeting-text')) document.getElementById('cv-greeting-text').innerText = greeting;
     if (document.getElementById('cv-inclusions-text')) document.getElementById('cv-inclusions-text').innerText = inclusions;
     if (document.getElementById('cv-terms-text')) document.getElementById('cv-terms-text').innerText = terms;
     if (document.getElementById('cv-vigencia')) document.getElementById('cv-vigencia').innerText = vigencia;
 
     if (document.getElementById('cv-total-pax')) {
-        document.getElementById('cv-total-pax').innerText = `${travelData.personas.length || 0} Pasajeros`;
+        document.getElementById('cv-total-pax').innerText = `${travelData.personas ? travelData.personas.length : 0} Pasajeros`;
     }
-    if (document.getElementById('cv-total-destinos')) {
-        document.getElementById('cv-total-destinos').innerText = travelData.destinos.map(d => d.ciudad).join(', ') || 'Sin Destino';
+    if (document.getElementById('cv-total-destinos') && travelData.destinos) {
+        document.getElementById('cv-total-destinos').innerText = travelData.destinos.map(d => d.ciudad).filter(Boolean).join(', ');
     }
     
-    const totalDays = travelData.destinos.reduce((sum, d) => sum + Number(d.dias || 0), 0) || 0;
+    const totalDays = travelData.destinos ? travelData.destinos.reduce((sum, d) => sum + Number(d.dias || 0), 0) : 0;
     if (document.getElementById('cv-total-days')) {
-        document.getElementById('cv-total-days').innerText = `${totalDays} Días / ${Math.max(0, totalDays - 1)} Noches`;
+        document.getElementById('cv-total-days').innerText = totalDays > 0 ? `${totalDays} Días / ${Math.max(0, totalDays - 1)} Noches` : '';
     }
 
     let subtotals = {};
@@ -367,62 +363,137 @@ function updateClientProposalView() {
         `;
     }
 
-    // Vuelos
+    // Render Vuelos
     const vuelosContainer = document.getElementById('cv-vuelos-container');
     if (vuelosContainer) {
-        vuelosContainer.innerHTML = (travelData.vuelos || []).map(v => `
-            <div class="bg-voyage-cream border border-voyage-border rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-xs">
-                <div class="space-y-1">
-                    <div class="flex items-center gap-2">
-                        <span class="bg-voyage-teal text-white text-[10px] font-bold px-2 py-0.5 rounded">${v.aerolinea}</span>
-                        <span class="font-bold text-voyage-teal text-sm">${v.salida} ➔ ${v.destino}</span>
-                        <span class="text-slate-500 text-[11px]">(${v.redondo === 'Sí' ? 'Vuelo Redondo' : 'Sencillo'})</span>
-                    </div>
-                    <p class="text-slate-700 text-[11px]">Pasajero: <b>${v.pasajero}</b> | Despegue: ${v.fechaDespegue} ${v.horaDespegue}</p>
-                    <p class="text-slate-500 text-[11px]">Equipaje incluido: ${v.equipaje}</p>
-                </div>
-                <div class="text-right sm:border-l sm:border-voyage-border sm:pl-4">
-                    <p class="text-[10px] uppercase text-slate-500 font-semibold">Incluido en paquete</p>
-                    <p class="font-bold text-voyage-teal text-sm">$${Number(v.precioCliente).toLocaleString()} MXN</p>
-                </div>
-            </div>
-        `).join('') || '<p class="text-slate-500 italic">No hay vuelos registrados en la cotización.</p>';
-    }
-
-    // Hospedaje con fotos
-    const hospedajeContainer = document.getElementById('cv-hospedaje-container');
-    if (hospedajeContainer) {
-        hospedajeContainer.innerHTML = (travelData.hospedaje || []).map((h, idx) => {
-            const photo = (travelData.hotelPhotos && travelData.hotelPhotos[h.hotel]) ? 
-                travelData.hotelPhotos[h.hotel] : 
-                (window.samplePhotos ? window.samplePhotos[(idx + 1) % window.samplePhotos.length] : '');
-
-            return `
-                <div class="bg-voyage-cream border border-voyage-border rounded-xl overflow-hidden flex flex-col sm:flex-row shadow-xs">
-                    <img src="${photo}" class="w-full sm:w-44 h-32 object-cover" onerror="this.src='${window.samplePhotos ? window.samplePhotos[0] : ''}'">
-                    <div class="p-3.5 flex-1 flex flex-col justify-between space-y-1">
-                        <div>
-                            <h4 class="font-bold text-voyage-teal text-sm font-serif-title flex items-center gap-1.5">
-                                <i class="fa-solid fa-hotel text-voyage-sage"></i> ${h.hotel}
-                            </h4>
-                            <p class="text-slate-700 text-[11px] mt-1">
-                                Check-in: <b>${h.checkIn}</b> | Check-out: <b>${h.checkOut}</b> (${h.noches} Noches)
-                            </p>
-                            <p class="text-voyage-terracotta font-medium text-[11px]">
-                                Plan: <b>${h.todoIncluido}</b> | Tipo: ${h.tipo} | Habs: ${h.habitaciones}
-                            </p>
-                        </div>
-                        <div class="pt-1.5 border-t border-voyage-border/60 flex items-center justify-between text-[11px]">
-                            <span class="text-slate-500">Titular: ${h.titular || 'Cliente'}</span>
-                            <span class="font-bold text-voyage-teal">$${Number(h.precioCliente).toLocaleString()} MXN</span>
-                        </div>
-                    </div>
+        const vuelos = travelData.vuelos || [];
+        if (vuelos.length === 0) {
+            vuelosContainer.innerHTML = '';
+        } else {
+            const headerHtml = `
+                <div class="flex items-center justify-between border-b border-voyage-border pb-2">
+                    <h3 class="text-base font-bold text-voyage-teal flex items-center gap-2 font-serif-title">
+                        <i class="fa-solid fa-plane-departure text-voyage-terracotta"></i> Vuelos e Itinerario de Traslados
+                    </h3>
+                    <img src="assets/ELEMENTOS-MARCA-06.png" class="h-8 w-auto object-contain" onerror="this.style.display='none'">
                 </div>
             `;
-        }).join('') || '<p class="text-slate-500 italic">No hay hospedaje registrado en la cotización.</p>';
+
+            const cardsHtml = vuelos.map((v, idx) => {
+                const transporteTexto = (v.medioTransporte || v.empresa) ? `${v.medioTransporte || ''} ${v.empresa || ''}`.trim() : '';
+                const transporteTag = transporteTexto ? `<span class="bg-voyage-teal text-white text-[10px] font-bold px-2 py-0.5 rounded">${transporteTexto}</span>` : '';
+                const redondoTag = v.redondo ? `<span class="text-slate-500 text-[11px]">(${v.redondo === 'Sí' ? 'Viaje Redondo' : 'Sencillo'})</span>` : '';
+                const terminalText = v.terminal ? `<b>Terminal:</b> ${v.terminal} | ` : '';
+                const salidaText = (v.fechaDespegue || v.horaDespegue) ? `<i class="fa-solid fa-plane-departure text-voyage-terracotta mr-1"></i><b>Salida:</b> ${v.fechaDespegue || ''} ${v.horaDespegue || ''} ` : '';
+                const llegadaText = (v.fechaAterrizaje || v.horaAterrizaje) ? `<i class="fa-solid fa-plane-arrival text-voyage-sage ml-2 mr-1"></i><b>Llegada:</b> ${v.fechaAterrizaje || ''} ${v.horaAterrizaje || ''}` : '';
+                const equipajeText = v.equipaje ? `<p class="text-slate-500 text-[11px]">Equipaje: ${v.equipaje} ${v.escalas ? '| Escalas: ' + v.escalas : ''}</p>` : '';
+
+                const cardContent = `
+                    <div class="bg-voyage-cream border border-voyage-border rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-xs">
+                        <div class="space-y-1">
+                            <div class="flex items-center gap-2 flex-wrap">
+                                ${transporteTag}
+                                <span class="font-bold text-voyage-teal text-sm">${v.salida || ''} ➔ ${v.destino || ''}</span>
+                                ${redondoTag}
+                            </div>
+                            <p class="text-slate-700 text-[11px]">
+                                ${terminalText}Pasajero: <b>${v.pasajero || ''}</b>
+                            </p>
+                            <p class="text-slate-600 text-[11px]">
+                                ${salidaText}
+                                ${llegadaText}
+                            </p>
+                            ${equipajeText}
+                        </div>
+                        <div class="text-right sm:border-l sm:border-voyage-border sm:pl-4">
+                            <p class="font-bold text-voyage-teal text-sm">$${Number(v.precioCliente || 0).toLocaleString('es-MX')} MXN</p>
+                        </div>
+                    </div>
+                `;
+
+                if (idx === 0) {
+                    return `
+                        <div class="pdf-avoid-break space-y-3">
+                            ${headerHtml}
+                            ${cardContent}
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="pdf-avoid-break">
+                            ${cardContent}
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            vuelosContainer.innerHTML = cardsHtml;
+        }
     }
 
-    // Itinerario por grupos y pasajeros
+    // Render Hospedaje
+    const hospedajeContainer = document.getElementById('cv-hospedaje-container');
+    if (hospedajeContainer) {
+        const hospedaje = travelData.hospedaje || [];
+        if (hospedaje.length === 0) {
+            hospedajeContainer.innerHTML = '';
+        } else {
+            const headerHtml = `
+                <div class="flex items-center justify-between border-b border-voyage-border pb-2">
+                    <h3 class="text-base font-bold text-voyage-teal flex items-center gap-2 font-serif-title">
+                        <i class="fa-solid fa-hotel text-voyage-sage"></i> Hospedaje Seleccionado
+                    </h3>
+                    <img src="assets/ELEMENTOS-MARCA-02.jpg" class="h-8 w-auto object-contain rounded" onerror="this.style.display='none'">
+                </div>
+            `;
+
+            const cardsHtml = hospedaje.map((h, idx) => {
+                const photo = (travelData.hotelPhotos && travelData.hotelPhotos[h.hotel]) ? travelData.hotelPhotos[h.hotel] : '';
+                const imgHtml = photo ? `<img src="${photo}" class="w-full sm:w-44 h-32 object-cover flex-shrink-0">` : '';
+
+                const cardContent = `
+                    <div class="bg-voyage-cream border border-voyage-border rounded-xl overflow-hidden flex flex-col sm:flex-row shadow-xs">
+                        ${imgHtml}
+                        <div class="p-3.5 flex-1 flex flex-col justify-between space-y-1">
+                            <div>
+                                <h4 class="font-bold text-voyage-teal text-sm font-serif-title flex items-center gap-1.5">
+                                    <i class="fa-solid fa-hotel text-voyage-sage"></i> ${h.hotel || ''}
+                                </h4>
+                                <p class="text-slate-700 text-[11px] mt-1">
+                                    Check-in: <b>${h.checkIn || ''}</b> | Check-out: <b>${h.checkOut || ''}</b> ${h.noches ? `(${h.noches} Noches)` : ''}
+                                </p>
+                                <p class="text-voyage-terracotta font-medium text-[11px]">
+                                    Plan: <b>${h.todoIncluido || ''}</b> | Tipo: ${h.tipo || ''} | Habs: ${h.habitaciones || ''}
+                                </p>
+                            </div>
+                            <div class="pt-1.5 border-t border-voyage-border/60 flex items-center justify-between text-[11px]">
+                                <span class="text-slate-500">${h.titular ? 'Titular: ' + h.titular : ''}</span>
+                                <span class="font-bold text-voyage-teal">$${Number(h.precioCliente || 0).toLocaleString('es-MX')} MXN</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                if (idx === 0) {
+                    return `
+                        <div class="pdf-avoid-break space-y-3">
+                            ${headerHtml}
+                            ${cardContent}
+                        </div>
+                    `;
+                } else {
+                    return `
+                        <div class="pdf-avoid-break">
+                            ${cardContent}
+                        </div>
+                    `;
+                }
+            }).join('');
+
+            hospedajeContainer.innerHTML = cardsHtml;
+        }
+    }
+
     renderItineraryByGroups();
 }
 
@@ -430,120 +501,161 @@ function renderItineraryByGroups() {
     const container = document.getElementById('cv-itinerario-container');
     if (!container) return;
 
-    const combinedMap = {};
-    
-    if (Array.isArray(travelData.actividades)) {
-        travelData.actividades.forEach(a => {
-            const key = a.actividad.trim() + '|' + a.fecha;
-            combinedMap[key] = {
-                actividad: a.actividad,
-                fecha: a.fecha,
-                hora: a.hora,
-                hora_llegada: a.hora_llegada,
-                hora_salida: a.hora_salida,
-                lugar: a.lugar,
-                destino: a.destino,
-                duracion: a.duracion,
-                grupo: String(a.grupo || 1),
-                precioCliente: a.precioCliente,
-                pasajerosSet: new Set()
-            };
-        });
-    }
-
-    if (Array.isArray(travelData.itinerario)) {
-        travelData.itinerario.forEach(i => {
-            const key = i.actividad.trim() + '|' + i.fecha;
-            
-            if (!combinedMap[key]) {
-                combinedMap[key] = {
-                    actividad: i.actividad,
-                    fecha: i.fecha,
-                    hora: i.hora,
-                    hora_llegada: i.hora_llegada,
-                    hora_salida: i.hora_salida,
-                    lugar: i.lugar,
-                    destino: i.destino,
-                    duracion: 'Por definir',
-                    grupo: String(i.grupo || 1),
-                    precioCliente: 0,
-                    pasajerosSet: new Set()
-                };
-            } else {
-                // Ya no bloqueamos las horas, si traen un valor válido las inyectamos
-                if (i.hora_llegada) combinedMap[key].hora_llegada = i.hora_llegada;
-                if (i.hora_salida) combinedMap[key].hora_salida = i.hora_salida;
-                if (i.hora) combinedMap[key].hora = i.hora;
-            }
-
-            if (i.pasajeros && i.pasajeros !== 'Todos los asignados' && i.pasajeros !== 'Grupo Completo') {
-                combinedMap[key].pasajerosSet.add(i.pasajeros.trim());
-            }
-        });
-    }
-
-    const combinedList = Object.values(combinedMap).map(item => {
-        const pasList = Array.from(item.pasajerosSet);
-        return {
-            ...item,
-            pasajeros: pasList.length > 0 ? pasList.join(', ') : 'Grupo Completo'
-        };
-    });
-
-    if (combinedList.length === 0) {
-        container.innerHTML = '<p class="text-slate-500 italic">No hay actividades o itinerario registrados en la cotización.</p>';
-        return;
-    }
-
     const groupPassengersMap = {};
     if (Array.isArray(travelData.personas)) {
         travelData.personas.forEach(p => {
-            const gKey = String(p.grupo || 1);
+            const gKey = String(p.grupo || 1).trim();
             if (!groupPassengersMap[gKey]) groupPassengersMap[gKey] = [];
-            groupPassengersMap[gKey].push(p); 
+            groupPassengersMap[gKey].push(p);
         });
     }
 
+    const actividadCatalog = {};
+    if (Array.isArray(travelData.actividades)) {
+        travelData.actividades.forEach(a => {
+            if (!a || !a.actividad) return;
+            const normName = a.actividad.trim().toLowerCase();
+            if (!actividadCatalog[normName]) {
+                actividadCatalog[normName] = a;
+            }
+        });
+    }
+
+    const combinedMap = {};
+    const hasItinerarioData = Array.isArray(travelData.itinerario) && travelData.itinerario.length > 0;
+
+    if (hasItinerarioData) {
+        travelData.itinerario.forEach(i => {
+            if (!i || !i.actividad) return;
+            const actName = i.actividad.trim();
+            const normName = actName.toLowerCase();
+            const gKey = String(i.grupo || 1).trim();
+            const catalogItem = actividadCatalog[normName] || {};
+
+            const fecha = i.fecha || catalogItem.fecha || '';
+            const key = normName + '|' + fecha.trim() + '|' + gKey;
+
+            if (!combinedMap[key]) {
+                combinedMap[key] = {
+                    actividad: actName,
+                    fecha: fecha,
+                    hora: i.hora || catalogItem.hora || '',
+                    hora_llegada: i.hora_llegada || catalogItem.hora_llegada || null,
+                    hora_salida: i.hora_salida || catalogItem.hora_salida || null,
+                    lugar: i.lugar || catalogItem.lugar || '',
+                    destino: i.destino || catalogItem.destino || '',
+                    duracion: catalogItem.duracion || i.duracion || '',
+                    grupo: gKey,
+                    precioCliente: Number(catalogItem.precioCliente || 0),
+                    pasajerosSet: new Set(),
+                    isAll: false
+                };
+            } else {
+                if (i.hora_llegada) combinedMap[key].hora_llegada = i.hora_llegada;
+                if (i.hora_salida) combinedMap[key].hora_salida = i.hora_salida;
+                if (i.hora && !combinedMap[key].hora) combinedMap[key].hora = i.hora;
+                if (i.lugar && !combinedMap[key].lugar) combinedMap[key].lugar = i.lugar;
+                if (i.destino && !combinedMap[key].destino) combinedMap[key].destino = i.destino;
+            }
+
+            if (i.pasajeros) {
+                const rawPas = String(i.pasajeros).trim();
+                const normPas = rawPas.toLowerCase();
+                if (normPas === 'todos los asignados' || normPas === 'grupo completo' || normPas === 'todos') {
+                    combinedMap[key].isAll = true;
+                } else {
+                    rawPas.split(',').forEach(pName => {
+                        const cleanName = pName.trim();
+                        if (cleanName) combinedMap[key].pasajerosSet.add(cleanName);
+                    });
+                }
+            }
+        });
+    } else if (Array.isArray(travelData.actividades) && travelData.actividades.length > 0) {
+        travelData.actividades.forEach(a => {
+            if (!a || !a.actividad) return;
+            const actName = a.actividad.trim();
+            const normName = actName.toLowerCase();
+            const gKey = String(a.grupo || 1).trim();
+            const key = normName + '|' + (a.fecha || '').trim() + '|' + gKey;
+
+            if (!combinedMap[key]) {
+                combinedMap[key] = {
+                    actividad: actName,
+                    fecha: a.fecha || '',
+                    hora: a.hora || '',
+                    hora_llegada: a.hora_llegada || null,
+                    hora_salida: a.hora_salida || null,
+                    lugar: a.lugar || '',
+                    destino: a.destino || '',
+                    duracion: a.duracion || '',
+                    grupo: gKey,
+                    precioCliente: Number(a.precioCliente || 0),
+                    pasajerosSet: new Set(),
+                    isAll: true
+                };
+            }
+        });
+    }
+
+    const allGroupKeysSet = new Set([
+        ...Object.keys(groupPassengersMap),
+        ...Object.values(combinedMap).map(item => item.grupo)
+    ]);
+
+    const allGroupKeys = Array.from(allGroupKeysSet).sort((a, b) => {
+        const numA = parseInt(a, 10);
+        const numB = parseInt(b, 10);
+        if (!isNaN(numA) && !isNaN(numB)) return numA - numB;
+        return a.localeCompare(b);
+    });
+
+    if (allGroupKeys.length === 0) {
+        container.innerHTML = '';
+        return;
+    }
+
     const activitiesByGroup = {};
-    combinedList.forEach(item => {
-        const gKey = String(item.grupo || 1);
+    Object.values(combinedMap).forEach(item => {
+        const gKey = item.grupo;
         if (!activitiesByGroup[gKey]) activitiesByGroup[gKey] = [];
         activitiesByGroup[gKey].push(item);
     });
 
-    const groupKeys = Object.keys(activitiesByGroup);
+    const mainHeaderHtml = `
+        <div class="flex items-center justify-between border-b border-voyage-border pb-2">
+            <h3 class="text-base font-bold text-voyage-teal flex items-center gap-2 font-serif-title">
+                <i class="fa-solid fa-compass text-voyage-terracotta"></i> Itinerario de Experiencias y Actividades
+            </h3>
+            <img src="assets/ELEMENTOS-MARCA-07.png" class="h-10 w-auto object-contain" onerror="this.style.display='none'">
+        </div>
+    `;
 
-    container.innerHTML = groupKeys.map((gKey) => {
-        const groupActivities = activitiesByGroup[gKey];
+    container.innerHTML = allGroupKeys.map((gKey, groupIdx) => {
+        const groupActivities = activitiesByGroup[gKey] || [];
         const passengersList = groupPassengersMap[gKey] || [];
+        const totalPaxInGroup = passengersList.length;
 
         const passengersHtml = passengersList.map(p => {
             if (typeof p === 'string') return `<div>• ${p}</div>`;
-            
-            let extraTags = '';
-            if (typeof showInternalCosts !== 'undefined' && showInternalCosts) {
-                let tags = [];
-                if (p.genero && p.genero !== 'N/A') tags.push(p.genero);
-                if (p.contacto && p.contacto !== 'N/A') tags.push(`<i class="fa-solid fa-phone"></i> ${p.contacto}`);
-                if (p.alergias && p.alergias.toLowerCase() !== 'ninguna' && p.alergias.toLowerCase() !== 'n/a') {
-                    tags.push(`<span class="text-red-500 font-bold"><i class="fa-solid fa-notes-medical"></i> ${p.alergias}</span>`);
-                }
-                if (tags.length > 0) {
-                    extraTags = `<span class="text-[9px] text-slate-500 ml-1.5 font-normal border-l border-slate-300 pl-1.5">${tags.join(' | ')}</span>`;
-                }
-            }
-            return `<div class="whitespace-nowrap truncate text-xs text-slate-700 mt-0.5">• <b>${p.nombre}</b> ${extraTags}</div>`;
+            return `<div class="whitespace-nowrap truncate text-xs text-slate-700 mt-0.5">• <b>${p.nombre || ''}</b></div>`;
         }).join('');
 
-        const activitiesHtml = groupActivities.map((a, idx) => {
-            const photo = (travelData.activityPhotos && travelData.activityPhotos[a.actividad]) ? 
-                travelData.activityPhotos[a.actividad] : 
-                (window.samplePhotos ? window.samplePhotos[idx % window.samplePhotos.length] : '');
+        const activitiesHtml = groupActivities.length > 0 ? groupActivities.map((a) => {
+            const photo = (travelData.activityPhotos && travelData.activityPhotos[a.actividad]) ? travelData.activityPhotos[a.actividad] : '';
+            const imgHtml = photo ? `<img src="${photo}" class="w-full sm:w-44 h-32 object-cover flex-shrink-0">` : '';
+            const priceLabel = a.precioCliente > 0 ? `$${Number(a.precioCliente).toLocaleString('es-MX')} MXN` : '';
 
-            const priceLabel = a.precioCliente > 0 ? `$${Number(a.precioCliente).toLocaleString()} MXN` : 'Incluido';
+            let asignadosTexto = '';
+            const assignedArray = Array.from(a.pasajerosSet);
 
-            // LÓGICA DE HORAS LIMPIA Y SIN BLOQUEOS
-            let displayTime = a.hora;
+            if (a.isAll || assignedArray.length === 0 || (totalPaxInGroup > 0 && assignedArray.length >= totalPaxInGroup)) {
+                asignadosTexto = 'Todos';
+            } else {
+                asignadosTexto = assignedArray.join(', ');
+            }
+
+            let displayTime = a.hora || '';
             if (a.hora_salida && a.hora_llegada) {
                 displayTime = `Salida: ${a.hora_salida} | Llegada: ${a.hora_llegada}`;
             } else if (a.hora_salida) {
@@ -553,49 +665,71 @@ function renderItineraryByGroups() {
             }
 
             return `
-                <div class="bg-white border border-voyage-border rounded-xl overflow-hidden flex flex-col sm:flex-row shadow-xs">
-                    <img src="${photo}" class="w-full sm:w-44 h-32 object-cover flex-shrink-0" onerror="this.src='${window.samplePhotos ? window.samplePhotos[0] : ''}'">
+                <div class="bg-white border border-voyage-border rounded-xl overflow-hidden flex flex-col sm:flex-row shadow-xs pdf-avoid-break">
+                    ${imgHtml}
                     <div class="p-3.5 flex-1 flex flex-col justify-between space-y-2">
                         <div>
                             <div class="flex items-center justify-between">
-                                <span class="text-voyage-terracotta font-bold text-[11px]"><i class="fa-regular fa-clock mr-1"></i>${a.fecha} - ${displayTime}</span>
-                                <span class="bg-voyage-cream text-voyage-teal text-[10px] px-2 py-0.5 rounded font-semibold border border-voyage-border">${a.duracion}</span>
+                                <span class="text-voyage-terracotta font-bold text-[11px]"><i class="fa-regular fa-clock mr-1"></i>${a.fecha || ''} ${displayTime ? '- ' + displayTime : ''}</span>
+                                ${a.duracion ? `<span class="bg-voyage-cream text-voyage-teal text-[10px] px-2 py-0.5 rounded font-semibold border border-voyage-border">${a.duracion}</span>` : ''}
                             </div>
-                            <h5 class="font-bold text-voyage-teal text-sm mt-1 font-serif-title">${a.actividad}</h5>
-                            <p class="text-slate-600 text-[11px] mt-1">
-                               <i class="fa-solid fa-users text-voyage-terracotta mr-1"></i> Asignados: <b>${a.pasajeros}</b>
-                            </p>
-                            <p class="text-slate-600 text-[11px] mt-0.5"><i class="fa-solid fa-location-dot text-voyage-terracotta mr-1"></i>${a.lugar} (${a.destino})</p>
+                            <h5 class="font-bold text-voyage-teal text-sm mt-1 font-serif-title">${a.actividad || ''}</h5>
+                            <p class="text-slate-600 text-[11px] mt-1"><i class="fa-solid fa-users text-voyage-terracotta mr-1"></i> Asignados: <b>${asignadosTexto}</b></p>
+                            ${(a.lugar || a.destino) ? `<p class="text-slate-600 text-[11px] mt-0.5"><i class="fa-solid fa-location-dot text-voyage-terracotta mr-1"></i>${a.lugar || ''} ${a.destino ? '(' + a.destino + ')' : ''}</p>` : ''}
                         </div>
+                        ${priceLabel ? `
                         <div class="pt-1.5 border-t border-voyage-border/60 flex items-center justify-between text-[11px]">
                             <span class="font-bold text-voyage-teal">${priceLabel}</span>
-                        </div>
+                        </div>` : ''}
                     </div>
                 </div>
             `;
-        }).join('');
+        }).join('') : '<p class="text-slate-500 italic text-xs">Sin actividades programadas para este grupo.</p>';
 
-        return `
-            <div class="bg-voyage-cream/60 border border-voyage-border rounded-2xl p-4 space-y-3 shadow-xs">
-                <div class="flex flex-col sm:flex-row sm:items-start justify-between pb-3 border-b border-voyage-border gap-3">
-                    <div class="flex items-center gap-2">
-                        <span class="bg-voyage-terracotta text-white font-bold text-xs px-2.5 py-1 rounded-lg">Grupo ${gKey}</span>
-                        <h4 class="font-bold text-voyage-teal text-sm">Itinerario Programado</h4>
-                    </div>
-                    
-                    <div class="bg-white px-3 py-2 rounded-xl border border-voyage-border shadow-xs min-w-[220px]">
-                        <div class="flex items-center gap-1.5 mb-1 text-voyage-sage border-b border-voyage-border pb-1">
-                            <i class="fa-solid fa-id-card"></i> <span class="font-bold uppercase text-[10px] tracking-wide">Ficha de Pasajeros</span>
-                        </div>
-                        <div class="flex flex-col">
-                            ${passengersHtml || '<i class="text-xs text-slate-400">Sin asignar</i>'}
-                        </div>
-                    </div>
+        const groupHeaderHtml = `
+            <div class="flex flex-col sm:flex-row sm:items-start justify-between pb-3 border-b border-voyage-border gap-3">
+                <div class="flex items-center gap-2">
+                    <span class="bg-voyage-terracotta text-white font-bold text-xs px-2.5 py-1 rounded-lg">Grupo ${gKey}</span>
+                    <h4 class="font-bold text-voyage-teal text-sm">Itinerario Programado</h4>
                 </div>
-                <div class="space-y-3">
-                    ${activitiesHtml}
-                </div>
+                
+                ${passengersHtml ? `
+                <div class="bg-white px-3 py-2 rounded-xl border border-voyage-border shadow-xs min-w-[220px]">
+                    <div class="flex items-center gap-1.5 mb-1 text-voyage-sage border-b border-voyage-border pb-1">
+                        <i class="fa-solid fa-id-card"></i> <span class="font-bold uppercase text-[10px] tracking-wide">Ficha de Pasajeros</span>
+                    </div>
+                    <div class="flex flex-col">
+                        ${passengersHtml}
+                    </div>
+                </div>` : ''}
             </div>
         `;
+
+        if (groupIdx === 0) {
+            return `
+                <div class="space-y-4">
+                    <div class="pdf-avoid-break space-y-3">
+                        ${mainHeaderHtml}
+                        <div class="bg-voyage-cream/60 border border-voyage-border rounded-2xl p-4 shadow-xs">
+                            ${groupHeaderHtml}
+                        </div>
+                    </div>
+                    <div class="space-y-3">
+                        ${activitiesHtml}
+                    </div>
+                </div>
+            `;
+        } else {
+            return `
+                <div class="space-y-3 pt-2">
+                    <div class="bg-voyage-cream/60 border border-voyage-border rounded-2xl p-4 shadow-xs pdf-avoid-break">
+                        ${groupHeaderHtml}
+                    </div>
+                    <div class="space-y-3">
+                        ${activitiesHtml}
+                    </div>
+                </div>
+            `;
+        }
     }).join('');
 }

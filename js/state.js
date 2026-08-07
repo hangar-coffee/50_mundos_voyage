@@ -22,8 +22,8 @@ function resetData() {
         hospedaje: [], actividades: [], itinerario: [],
         paquetes: [], activityPhotos: {}
     };
-    renderTables();
-    buildActivityPhotosUI();
+    if (typeof renderTables === 'function') renderTables();
+    if (typeof buildActivityPhotosUI === 'function') buildActivityPhotosUI();
     const badge = document.getElementById('dataStatusBadge');
     if (badge) badge.innerText = 'Sin Datos - Cargar Excel';
     const summary = document.getElementById('uploadSummary');
@@ -49,6 +49,6 @@ function toggleCostsVisibility() {
         if (badge) badge.innerText = "Modo: Solo Cliente";
     }
 
-    renderTables();
-    updateClientProposalView();
+    if (typeof renderTables === 'function') renderTables();
+    if (typeof updateClientProposalView === 'function') updateClientProposalView();
 }

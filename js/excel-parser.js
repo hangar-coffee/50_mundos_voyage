@@ -252,16 +252,20 @@ function parseDestinosSheet(rows) {
 
 function parseVuelosSheet(rows) {
     if (!Array.isArray(rows) || rows.length === 0) return;
-    const { headerIdx, colMap } = findHeaderAndMap(rows, ['aerolinea', 'pasajero', 'despegue', 'salida']);
+    const { headerIdx, colMap } = findHeaderAndMap(rows, ['terminal', 'medio de transporte', 'empresa', 'pasajero', 'salida', 'destino']);
     travelData.vuelos = travelData.vuelos || [];
 
     for (let i = headerIdx + 1; i < rows.length; i++) {
         const r = rows[i];
         if (!Array.isArray(r) || r.length === 0 || r.every(c => c === '' || c === null || c === undefined)) continue;
 
-        const pasajero = getVal(r, colMap, ['pasajero', 'nombre'], 3);
-        const salida = getVal(r, colMap, ['salida', 'origen'], 4);
-        const destino = getVal(r, colMap, ['destino'], 5);
+        const terminal = getVal(r, colMap, ['terminal', 'aeropuerto']);
+        const medioTransporte = getVal(r, colMap, ['medio de transporte', 'medio', 'transporte']);
+        const empresa = getVal(r, colMap, ['empresa', 'aerolinea', 'aerolínea', 'linea']);
+        const grupo = getVal(r, colMap, ['grupo', 'grp']);
+        const pasajero = getVal(r, colMap, ['pasajero', 'nombre']);
+        const salida = getVal(r, colMap, ['salida', 'origen']);
+        const destino = getVal(r, colMap, ['destino']);
 
         const normPasajero = normalizeText(pasajero);
         const normSalida = normalizeText(salida);
@@ -273,29 +277,122 @@ function parseVuelosSheet(rows) {
             normSalida === 'origen' || 
             normDestino === 'destino') continue;
 
-        const costoNeto = Number(getVal(r, colMap, ['50 mundos', 'costo'], 13)) || 0;
-        const precioCliente = Number(getVal(r, colMap, ['precio cliente', 'cliente final'], 14)) || (costoNeto > 0 ? costoNeto * 1.15 : 0);
+        const costoNeto = Number(getVal(r, colMap, ['costo 50 mundos', '50 mundos', 'costo'])) || 0;
+        const precioCliente = Number(getVal(r, colMap, ['precio cliente final', 'precio cliente', 'cliente final'])) || 0;
 
         travelData.vuelos.push({
-            aeropuerto: String(getVal(r, colMap, ['aeropuerto'], 0) || 'AIC'),
-            aerolinea: String(getVal(r, colMap, ['aerolinea', 'aerolínea'], 1) || 'Aerolínea'),
-            grupo: getVal(r, colMap, ['grupo'], 2) || 1,
-            pasajero: String(pasajero || 'Pasajero'),
-            salida: String(salida || 'Origen'),
-            destino: String(destino || 'Destino'),
-            redondo: String(getVal(r, colMap, ['redondo'], 6) || 'Sí'),
-            equipaje: String(getVal(r, colMap, ['equipaje'], 7) || 'Incluido'),
-            escalas: String(getVal(r, colMap, ['escalas'], 8) || 'Directo'),
-            fechaDespegue: formatDate(getVal(r, colMap, ['fecha de despegue', 'despegue'], 9)),
-            horaDespegue: formatTime(getVal(r, colMap, ['hora de despegue'], 10)),
-            fechaAterrizaje: formatDate(getVal(r, colMap, ['fecha de aterrizaje', 'aterrizaje'], 11)),
-            horaAterrizaje: formatTime(getVal(r, colMap, ['hora de aterrizaje'], 12)),
+            terminal: String(terminal || ''),
+            medioTransporte: String(medioTransporte || ''),
+            empresa: String(empresa || ''),
+            aerolinea: String(empresa || ''),
+            grupo: grupo || '',
+            pasajero: String(pasajero || ''),
+            salida: String(salida || ''),
+            destino: String(destino || ''),
+            redondo: String(getVal(r, colMap, ['es redondo', 'redondo']) || ''),
+            equipaje: String(getVal(r, colMap, ['equipaje incluido', 'equipaje']) || ''),
+            escalas: String(getVal(r, colMap, ['escalas', 'escala']) || ''),
+            fechaDespegue: formatDate(getVal(r, colMap, ['fecha de despegue', 'despegue'])),
+            horaDespegue: formatTime(getVal(r, colMap, ['hora de despegue'])),
+            fechaAterrizaje: formatDate(getVal(r, colMap, ['fecha de aterrizaje', 'aterrizaje'])),
+            horaAterrizaje: formatTime(getVal(r, colMap, ['hora de aterrizaje'])),
             costoNeto: costoNeto,
             precioCliente: precioCliente
         });
     }
 }
 
+function parseWorkbookData(workbook) {
+    if (typeof travelData !== 'undefined') {
+        travelData.personas = [];
+        travelData.destinos = [];
+        travelData.vuelos = [];
+        travelData.hospedaje = [];
+        travelData.actividades = [];
+        travelData.itinerario = [];
+        travelData.paquetes = [];
+        travelData.activityPhotos = {};
+        travelData.hotelPhotos = {};
+        travelData.destinoPhotos = {};
+    }
+
+    try {
+        localStorage.clear();
+    } catch(e) {}
+
+    if (typeof resetData === 'function') {
+        resetData();
+    }
+
+    if (!workbook || !workbook.SheetNames || !Array.isArray(workbook.SheetNames)) return;
+
+    workbook.SheetNames.forEach(sheetName => {
+        if (!sheetName) return;
+        const cleanName = normalizeText(sheetName);
+        const sheet = (workbook.Sheets && workbook.Sheets[sheetName]) ? workbook.Sheets[sheetName] : null;
+        if (!sheet) return;
+
+        try {
+            const rawJson = XLSX.utils.sheet_to_json(sheet, { header: 1, defval: '' });
+            if (!Array.isArray(rawJson) || rawJson.length === 0) return;
+
+            if (cleanName.includes('persona')) parsePersonasSheet(rawJson);
+            else if (cleanName.includes('destino')) parseDestinosSheet(rawJson);
+            else if (cleanName.includes('vuelo')) parseVuelosSheet(rawJson);
+            else if (cleanName.includes('hospedaje') || cleanName.includes('hotel')) parseHospedajeSheet(rawJson);
+            else if (cleanName.includes('actividad')) parseActividadesSheet(rawJson);
+            else if (cleanName.includes('itinerario')) parseItinerarioSheet(rawJson);
+        } catch (sheetErr) {
+            console.warn(`Error en pestaña ${sheetName}:`, sheetErr);
+        }
+    });
+
+    try {
+        if (typeof buildActivityPhotosUI === 'function') buildActivityPhotosUI();
+    } catch (photoErr) {}
+}
+
+function formatDate(val) {
+    if (val === null || val === undefined || val === '') return '';
+    if (val instanceof Date) {
+        if (isNaN(val.getTime())) return '';
+        try {
+            return val.toISOString().split('T')[0];
+        } catch (e) {
+            return '';
+        }
+    }
+    if (typeof val === 'number') {
+        try {
+            if (window.XLSX && XLSX.SSF) {
+                const date = XLSX.SSF.parse_date_code(val);
+                if (date) return `${date.y}-${String(date.m).padStart(2,'0')}-${String(date.d).padStart(2,'0')}`;
+            }
+        } catch(e) {}
+    }
+    const str = String(val).trim();
+    if (!str || str === '0') return '';
+    if (str.includes('T')) return str.split('T')[0];
+    if (str.includes(' ')) return str.split(' ')[0];
+    return str;
+}
+
+function formatTime(val) {
+    if (val === null || val === undefined || val === '') return '';
+    if (val instanceof Date) {
+        if (isNaN(val.getTime())) return '';
+        return `${String(val.getHours()).padStart(2, '0')}:${String(val.getMinutes()).padStart(2, '0')}`;
+    }
+    if (typeof val === 'number') {
+        const totalMinutes = Math.round(val * 24 * 60);
+        const hours = Math.floor(totalMinutes / 60) % 24;
+        const minutes = Math.floor(totalMinutes % 60);
+        return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+    }
+    const str = String(val).trim();
+    if (!str || str === '0') return '';
+    return str;
+}
 function parseHospedajeSheet(rows) {
     if (!Array.isArray(rows) || rows.length === 0) return;
     const { headerIdx, colMap } = findHeaderAndMap(rows, ['hotel', 'check in', 'titular']);

@@ -292,16 +292,15 @@ function parseVuelosSheet(rows) {
             redondo: String(getVal(r, colMap, ['es redondo', 'redondo']) || ''),
             equipaje: String(getVal(r, colMap, ['equipaje incluido', 'equipaje']) || ''),
             escalas: String(getVal(r, colMap, ['escalas', 'escala']) || ''),
-            fechaDespegue: formatDate(getVal(r, colMap, ['fecha de despegue', 'despegue'])),
-            horaDespegue: formatTime(getVal(r, colMap, ['hora de despegue'])),
-            fechaAterrizaje: formatDate(getVal(r, colMap, ['fecha de aterrizaje', 'aterrizaje'])),
-            horaAterrizaje: formatTime(getVal(r, colMap, ['hora de aterrizaje'])),
+            fechaDespegue: formatDate(getVal(r, colMap, ['fecha de salida', 'fecha salida', 'fecha de despegue', 'despegue'])),
+            horaDespegue: formatTime(getVal(r, colMap, ['hora de salida', 'hora salida', 'hora de despegue'])),
+            fechaAterrizaje: formatDate(getVal(r, colMap, ['fecha de llegada', 'fecha llegada', 'fecha de aterrizaje', 'aterrizaje'])),
+            horaAterrizaje: formatTime(getVal(r, colMap, ['hora de llegada', 'hora llegada', 'hora de aterrizaje'])),
             costoNeto: costoNeto,
             precioCliente: precioCliente
         });
     }
 }
-
 function parseWorkbookData(workbook) {
     if (typeof travelData !== 'undefined') {
         travelData.personas = [];
@@ -429,7 +428,7 @@ function parseHospedajeSheet(rows) {
             pax: getVal(r, colMap, ['pax'], 7) || 2,
             titular: String(getVal(r, colMap, ['titular'], 9) || 'Cliente Titular'),
             costoNeto: costoNeto,
-            precioCliente: precioCliente, // <-- Coma agregada aquí
+            precioCliente: precioCliente, 
             grupo: getVal(r, colMap, ['grupo'], 8) || 1
         });
     }

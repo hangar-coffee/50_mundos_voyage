@@ -223,6 +223,9 @@ function buildActivityPhotosUI() {
     const allHotels = getAllUniqueHotels();
     const allDestinations = getAllUniqueDestinations();
 
+    // Inicializar el objeto de descripciones si no existe
+    travelData.destinoDescriptions = travelData.destinoDescriptions || {};
+
     let html = '';
 
     const renderBlock = (type, list, title, icon, photosObj) => {
@@ -243,6 +246,14 @@ function buildActivityPhotosUI() {
                 const encName = encodeURIComponent(itemName);
                 const imgThumb = currentPhoto ? `<img src="${currentPhoto}" class="w-9 h-9 rounded-lg object-cover border border-voyage-border shadow-xs flex-shrink-0">` : '';
 
+                // NUEVO: Agregar campo de descripción solo si es un destino
+                const currentDesc = (type === 'destino' && travelData.destinoDescriptions[itemName]) ? travelData.destinoDescriptions[itemName] : '';
+                const descHtml = type === 'destino' ? `
+                    <textarea placeholder="Descripción o detalles del destino..." 
+                              onchange="updateDestinoDescription(decodeURIComponent('${encName}'), this.value)" 
+                              class="w-full mt-2 bg-white border border-voyage-border rounded p-1.5 text-[11px] text-voyage-darkteal outline-none focus:border-voyage-terracotta" rows="2">${currentDesc}</textarea>
+                ` : '';
+
                 return `
                 <div class="space-y-1 bg-voyage-cream p-2.5 rounded-xl border border-voyage-border shadow-xs mb-2">
                     <label class="block text-[11px] font-bold text-voyage-teal truncate" title="${itemName.replace(/"/g, '&quot;')}">${i + 1}. ${itemName}</label>
@@ -253,6 +264,7 @@ function buildActivityPhotosUI() {
                         </div>
                         <input type="file" accept="image/*" onchange="handleLocalPhotoUpload(event, '${type}', decodeURIComponent('${encName}'))" class="text-[10px] file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-[10px] file:bg-voyage-teal file:text-white">
                     </div>
+                    ${descHtml}
                 </div>
                 `;
             }).join('');
@@ -263,11 +275,11 @@ function buildActivityPhotosUI() {
 
     html += renderBlock('activity', allActivities, 'Imágenes de Actividades y Tours', 'fa-compass', travelData.activityPhotos);
     html += renderBlock('hotel', allHotels, 'Imágenes de Hospedaje / Hoteles', 'fa-hotel', travelData.hotelPhotos);
-    html += renderBlock('destino', allDestinations, 'Imágenes de Destinos', 'fa-location-dot', travelData.destinoPhotos);
+    // Actualizado el título para indicar que se puede agregar descripción
+    html += renderBlock('destino', allDestinations, 'Imágenes y Descripción de Destinos', 'fa-location-dot', travelData.destinoPhotos);
 
     container.innerHTML = html;
 }
-
 function updatePhotoUrl(type, itemName, url) {
     if (type === 'hotel') {
         travelData.hotelPhotos = travelData.hotelPhotos || {};
@@ -337,33 +349,143 @@ function updateClientProposalView() {
         document.getElementById('cv-total-days').innerText = totalDays > 0 ? `${totalDays} Días / ${Math.max(0, totalDays - 1)} Noches` : '';
     }
 
-    let subtotals = {};
+    // Gran Total del Viaje (Único precio mostrado)
     let grandTotal = 0;
-
-    const sumCost = (item) => {
-        const grp = item.grupo || 1;
-        const price = Number(item.precioCliente || 0);
-        if (!subtotals[grp]) subtotals[grp] = 0;
-        subtotals[grp] += price;
-        grandTotal += price;
-    };
+    const sumCost = (item) => { grandTotal += Number(item.precioCliente || 0); };
 
     if (Array.isArray(travelData.vuelos)) travelData.vuelos.forEach(sumCost);
     if (Array.isArray(travelData.hospedaje)) travelData.hospedaje.forEach(sumCost);
     if (Array.isArray(travelData.actividades)) travelData.actividades.forEach(sumCost);
 
     if (document.getElementById('cv-total-price')) {
-        let subtotalsHtml = Object.keys(subtotals).map(g => 
-            `<span class="text-sm text-slate-600 block">Subtotal Grupo ${g}: $${subtotals[g].toLocaleString('es-MX')} MXN</span>`
-        ).join('');
-        
         document.getElementById('cv-total-price').innerHTML = `
-            ${subtotalsHtml}
-            <span class="font-bold text-lg text-voyage-teal block mt-1">Total Final: $${grandTotal.toLocaleString('es-MX')} MXN</span>
+            <span class="font-bold text-xl text-voyage-terracotta block">$${grandTotal.toLocaleString('es-MX')} MXN</span>
         `;
     }
 
-    // Render Vuelos
+    // Render Hospedaje por Destino (un hotel por destino, sin precios desglosados)
+    const hospedajeContainer = document.getElementById('cv-hospedaje-container');
+    if (hospedajeContainer) {
+        const hospedajeRaw = travelData.hospedaje || [];
+        if (hospedajeRaw.length === 0) {
+            hospedajeContainer.innerHTML = '';
+        } else {
+            const hospedajeGrouped = [];
+            const destMap = {};
+
+            hospedajeRaw.forEach(h => {
+                const destKey = (h.destino || h.ciudad || h.hotel || 'Destino').trim().toLowerCase();
+                if (!destMap[destKey]) {
+                    destMap[destKey] = {
+                        hotel: h.hotel,
+                        destino: h.destino || h.ciudad || '',
+                        checkIn: h.checkIn,
+                        checkOut: h.checkOut,
+                        noches: h.noches,
+                        habitaciones: Number(h.habitaciones || 1),
+                        tipo: h.tipo,
+                        todoIncluido: h.todoIncluido
+                    };
+                    hospedajeGrouped.push(destMap[destKey]);
+                } else {
+                    destMap[destKey].habitaciones += Number(h.habitaciones || 0);
+                }
+            });
+
+            const headerHtml = `
+                <div class="flex items-center justify-between border-b border-voyage-border pb-2">
+                    <h3 class="text-base font-bold text-voyage-teal flex items-center gap-2 font-serif-title">
+                        <i class="fa-solid fa-hotel text-voyage-sage"></i> Hospedaje Seleccionado por Destino
+                    </h3>
+                    <img src="assets/ELEMENTOS-MARCA-02.jpg" class="h-8 w-auto object-contain rounded" onerror="this.style.display='none'">
+                </div>
+            `;
+
+            const cardsHtml = hospedajeGrouped.map((h, idx) => {
+                const photo = (travelData.hotelPhotos && travelData.hotelPhotos[h.hotel]) || (travelData.destinoPhotos && travelData.destinoPhotos[h.destino]) || '';
+                const imgHtml = photo ? `<img src="${photo}" class="w-full sm:w-44 h-32 object-cover flex-shrink-0">` : '';
+
+                const cardContent = `
+                    <div class="bg-voyage-cream border border-voyage-border rounded-xl overflow-hidden flex flex-col sm:flex-row shadow-xs">
+                        ${imgHtml}
+                        <div class="p-3.5 flex-1 flex flex-col justify-between space-y-1">
+                            <div>
+                                <div class="flex items-center justify-between">
+                                    <h4 class="font-bold text-voyage-teal text-sm font-serif-title flex items-center gap-1.5">
+                                        <i class="fa-solid fa-hotel text-voyage-sage"></i> ${h.hotel || ''}
+                                    </h4>
+                                    ${h.destino ? `<span class="bg-voyage-paper text-voyage-teal text-[10px] font-bold px-2 py-0.5 rounded border border-voyage-border">${h.destino}</span>` : ''}
+                                </div>
+                                <p class="text-slate-700 text-[11px] mt-1">
+                                    Check-in: <b>${h.checkIn || ''}</b> | Check-out: <b>${h.checkOut || ''}</b> ${h.noches ? `(${h.noches} Noches)` : ''}
+                                </p>
+                                <p class="text-voyage-terracotta font-medium text-[11px] mt-1">
+                                    Plan: <b>${h.todoIncluido || ''}</b> | Tipo: ${h.tipo || 'Habitación Standard'} | Habitaciones: ${h.habitaciones || 1}
+                                </p>
+                            </div>
+                            <div class="pt-1.5 border-t border-voyage-border/60 flex items-center justify-between text-[11px]">
+                                <span class="text-slate-500">Reserva confirmada para la estancia del grupo</span>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                return idx === 0 ? `<div class="pdf-avoid-break space-y-3">${headerHtml}${cardContent}</div>` : `<div class="pdf-avoid-break">${cardContent}</div>`;
+            }).join('');
+
+            hospedajeContainer.innerHTML = cardsHtml;
+        }
+    }
+    // Render Destinos en Cotización Final (Imagen + Descripción)
+    const destinosContainer = document.getElementById('cv-destinos-container');
+    if (destinosContainer) {
+        const allUniqueDestinations = getAllUniqueDestinations();
+        
+        if (allUniqueDestinations.length === 0) {
+            destinosContainer.innerHTML = '';
+        } else {
+            const headerHtml = `
+                <div class="flex items-center justify-between border-b border-voyage-border pb-2 mb-3">
+                    <h3 class="text-base font-bold text-voyage-teal flex items-center gap-2 font-serif-title">
+                        <i class="fa-solid fa-map-location-dot text-voyage-terracotta"></i> Destinos a Explorar
+                    </h3>
+                </div>
+            `;
+
+            let hasContent = false;
+            const cardsHtml = allUniqueDestinations.map((dest, idx) => {
+                const photo = (travelData.destinoPhotos && travelData.destinoPhotos[dest]) ? travelData.destinoPhotos[dest] : '';
+                const desc = (travelData.destinoDescriptions && travelData.destinoDescriptions[dest]) ? travelData.destinoDescriptions[dest] : '';
+                
+                // Solo renderizar el destino si el usuario le agregó foto o descripción
+                if (!photo && !desc) return '';
+                hasContent = true;
+
+                const imgHtml = photo ? `<img src="${photo}" class="w-full sm:w-1/3 md:w-48 h-36 object-cover flex-shrink-0">` : '';
+                
+                const cardContent = `
+                    <div class="bg-voyage-cream border border-voyage-border rounded-xl overflow-hidden flex flex-col sm:flex-row shadow-xs mb-3">
+                        ${imgHtml}
+                        <div class="p-4 flex-1 flex flex-col justify-center gap-2">
+                            <h4 class="font-bold text-voyage-teal text-base font-serif-title flex items-center gap-1.5">
+                                <i class="fa-solid fa-location-dot text-voyage-sage"></i> ${dest}
+                            </h4>
+                            ${desc ? `<p class="text-slate-700 text-xs leading-relaxed whitespace-pre-line">${desc}</p>` : ''}
+                        </div>
+                    </div>
+                `;
+
+                return idx === 0 ? `<div class="pdf-avoid-break">${cardContent}</div>` : `<div class="pdf-avoid-break">${cardContent}</div>`;
+            }).join('');
+
+            destinosContainer.innerHTML = hasContent ? (headerHtml + cardsHtml) : ''; 
+        }
+    }
+
+    // Render Itinerario (sin precios desglosados)
+    renderItineraryByGroups();
+
+    // Render Anexo: Vuelos por Pasajero (en el anexo final, sin precios desglosados)
     const vuelosContainer = document.getElementById('cv-vuelos-container');
     if (vuelosContainer) {
         const vuelos = travelData.vuelos || [];
@@ -373,7 +495,7 @@ function updateClientProposalView() {
             const headerHtml = `
                 <div class="flex items-center justify-between border-b border-voyage-border pb-2">
                     <h3 class="text-base font-bold text-voyage-teal flex items-center gap-2 font-serif-title">
-                        <i class="fa-solid fa-plane-departure text-voyage-terracotta"></i> Vuelos e Itinerario de Traslados
+                        <i class="fa-solid fa-paperclip text-voyage-terracotta"></i> ANEXO: Itinerario de viajes por Pasajero a destinos
                     </h3>
                     <img src="assets/ELEMENTOS-MARCA-06.png" class="h-8 w-auto object-contain" onerror="this.style.display='none'">
                 </div>
@@ -405,96 +527,22 @@ function updateClientProposalView() {
                             </p>
                             ${equipajeText}
                         </div>
-                        <div class="text-right sm:border-l sm:border-voyage-border sm:pl-4">
-                            <p class="font-bold text-voyage-teal text-sm">$${Number(v.precioCliente || 0).toLocaleString('es-MX')} MXN</p>
-                        </div>
                     </div>
                 `;
 
-                if (idx === 0) {
-                    return `
-                        <div class="pdf-avoid-break space-y-3">
-                            ${headerHtml}
-                            ${cardContent}
-                        </div>
-                    `;
-                } else {
-                    return `
-                        <div class="pdf-avoid-break">
-                            ${cardContent}
-                        </div>
-                    `;
-                }
+                return idx === 0 ? `<div class="pdf-avoid-break space-y-3">${headerHtml}${cardContent}</div>` : `<div class="pdf-avoid-break">${cardContent}</div>`;
             }).join('');
 
             vuelosContainer.innerHTML = cardsHtml;
         }
     }
-
-    // Render Hospedaje
-    const hospedajeContainer = document.getElementById('cv-hospedaje-container');
-    if (hospedajeContainer) {
-        const hospedaje = travelData.hospedaje || [];
-        if (hospedaje.length === 0) {
-            hospedajeContainer.innerHTML = '';
-        } else {
-            const headerHtml = `
-                <div class="flex items-center justify-between border-b border-voyage-border pb-2">
-                    <h3 class="text-base font-bold text-voyage-teal flex items-center gap-2 font-serif-title">
-                        <i class="fa-solid fa-hotel text-voyage-sage"></i> Hospedaje Seleccionado
-                    </h3>
-                    <img src="assets/ELEMENTOS-MARCA-02.jpg" class="h-8 w-auto object-contain rounded" onerror="this.style.display='none'">
-                </div>
-            `;
-
-            const cardsHtml = hospedaje.map((h, idx) => {
-                const photo = (travelData.hotelPhotos && travelData.hotelPhotos[h.hotel]) ? travelData.hotelPhotos[h.hotel] : '';
-                const imgHtml = photo ? `<img src="${photo}" class="w-full sm:w-44 h-32 object-cover flex-shrink-0">` : '';
-
-                const cardContent = `
-                    <div class="bg-voyage-cream border border-voyage-border rounded-xl overflow-hidden flex flex-col sm:flex-row shadow-xs">
-                        ${imgHtml}
-                        <div class="p-3.5 flex-1 flex flex-col justify-between space-y-1">
-                            <div>
-                                <h4 class="font-bold text-voyage-teal text-sm font-serif-title flex items-center gap-1.5">
-                                    <i class="fa-solid fa-hotel text-voyage-sage"></i> ${h.hotel || ''}
-                                </h4>
-                                <p class="text-slate-700 text-[11px] mt-1">
-                                    Check-in: <b>${h.checkIn || ''}</b> | Check-out: <b>${h.checkOut || ''}</b> ${h.noches ? `(${h.noches} Noches)` : ''}
-                                </p>
-                                <p class="text-voyage-terracotta font-medium text-[11px]">
-                                    Plan: <b>${h.todoIncluido || ''}</b> | Tipo: ${h.tipo || ''} | Habs: ${h.habitaciones || ''}
-                                </p>
-                            </div>
-                            <div class="pt-1.5 border-t border-voyage-border/60 flex items-center justify-between text-[11px]">
-                                <span class="text-slate-500">${h.titular ? 'Titular: ' + h.titular : ''}</span>
-                                <span class="font-bold text-voyage-teal">$${Number(h.precioCliente || 0).toLocaleString('es-MX')} MXN</span>
-                            </div>
-                        </div>
-                    </div>
-                `;
-
-                if (idx === 0) {
-                    return `
-                        <div class="pdf-avoid-break space-y-3">
-                            ${headerHtml}
-                            ${cardContent}
-                        </div>
-                    `;
-                } else {
-                    return `
-                        <div class="pdf-avoid-break">
-                            ${cardContent}
-                        </div>
-                    `;
-                }
-            }).join('');
-
-            hospedajeContainer.innerHTML = cardsHtml;
-        }
+}
+function updateDestinoDescription(itemName, text) {
+    travelData.destinoDescriptions = travelData.destinoDescriptions || {};
+    travelData.destinoDescriptions[itemName] = text;
+    if (typeof updateClientProposalView === 'function') {
+        updateClientProposalView();
     }
-
-    renderItineraryByGroups();
 }
 
 function renderItineraryByGroups() {
@@ -546,7 +594,6 @@ function renderItineraryByGroups() {
                     destino: i.destino || catalogItem.destino || '',
                     duracion: catalogItem.duracion || i.duracion || '',
                     grupo: gKey,
-                    precioCliente: Number(catalogItem.precioCliente || 0),
                     pasajerosSet: new Set(),
                     isAll: false
                 };
@@ -590,7 +637,6 @@ function renderItineraryByGroups() {
                     destino: a.destino || '',
                     duracion: a.duracion || '',
                     grupo: gKey,
-                    precioCliente: Number(a.precioCliente || 0),
                     pasajerosSet: new Set(),
                     isAll: true
                 };
@@ -644,7 +690,6 @@ function renderItineraryByGroups() {
         const activitiesHtml = groupActivities.length > 0 ? groupActivities.map((a) => {
             const photo = (travelData.activityPhotos && travelData.activityPhotos[a.actividad]) ? travelData.activityPhotos[a.actividad] : '';
             const imgHtml = photo ? `<img src="${photo}" class="w-full sm:w-44 h-32 object-cover flex-shrink-0">` : '';
-            const priceLabel = a.precioCliente > 0 ? `$${Number(a.precioCliente).toLocaleString('es-MX')} MXN` : '';
 
             let asignadosTexto = '';
             const assignedArray = Array.from(a.pasajerosSet);
@@ -677,10 +722,6 @@ function renderItineraryByGroups() {
                             <p class="text-slate-600 text-[11px] mt-1"><i class="fa-solid fa-users text-voyage-terracotta mr-1"></i> Asignados: <b>${asignadosTexto}</b></p>
                             ${(a.lugar || a.destino) ? `<p class="text-slate-600 text-[11px] mt-0.5"><i class="fa-solid fa-location-dot text-voyage-terracotta mr-1"></i>${a.lugar || ''} ${a.destino ? '(' + a.destino + ')' : ''}</p>` : ''}
                         </div>
-                        ${priceLabel ? `
-                        <div class="pt-1.5 border-t border-voyage-border/60 flex items-center justify-between text-[11px]">
-                            <span class="font-bold text-voyage-teal">${priceLabel}</span>
-                        </div>` : ''}
                     </div>
                 </div>
             `;

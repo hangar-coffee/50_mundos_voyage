@@ -129,7 +129,7 @@
             <div class="flex items-center space-x-2">
                 <button id="toggleCostsBtn" onclick="toggleCostsVisibility()" class="no-print px-3 py-1.5 text-xs bg-white hover:bg-voyage-paper text-voyage-teal rounded-lg border border-voyage-border transition flex items-center gap-1.5 font-semibold shadow-sm">
                     <i class="fa-solid fa-eye-slash text-voyage-terracotta" id="toggleCostsIcon"></i>
-                    <span id="toggleCostsLabel">Modo viejero</span>
+                    <span id="toggleCostsLabel">Modo viajero</span>
                 </button>
                 <button onclick="downloadPDF()" id="mainPdfBtn" class="no-print px-3 py-1.5 text-xs bg-voyage-teal hover:bg-voyage-darkteal text-white rounded-lg transition flex items-center gap-1.5 font-semibold shadow">
                     <i class="fa-solid fa-download"></i> Descargar PDF
@@ -438,7 +438,7 @@
                     </div>
                 </div>
 
-                <!-- Saludo e Información de Bienvenida -->
+                <!-- Saludo e Información de Bienvenida (Gran Total Único) -->
                 <div class="bg-white/85 backdrop-blur rounded-xl p-6 border border-voyage-sand/60 shadow-xs space-y-3 relative overflow-hidden pdf-avoid-break">
                     <div class="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                         <div class="space-y-2 flex-1 pr-0 md:pr-4">
@@ -468,9 +468,9 @@
                             <p class="text-[10px] uppercase text-slate-500 font-semibold tracking-wider">Duración Total</p>
                             <p class="font-bold text-voyage-teal text-sm" id="cv-total-days">0 Días</p>
                         </div>
-                        <div class="bg-voyage-cream p-3 rounded-lg border border-voyage-border shadow-xs">
-                            <p class="text-[10px] uppercase text-slate-500 font-semibold tracking-wider">Inversión Total</p>
-                            <p class="font-bold text-voyage-terracotta text-base" id="cv-total-price">$0.00 MXN</p>
+                        <div class="bg-voyage-cream p-3 rounded-lg border border-voyage-border shadow-xs flex flex-col justify-center items-center">
+                            <p class="text-[10px] uppercase text-slate-500 font-semibold tracking-wider">Total del Viaje</p>
+                            <div class="font-bold text-voyage-terracotta text-base" id="cv-total-price">$0.00 MXN</div>
                         </div>
                     </div>
                 </div>
@@ -478,18 +478,25 @@
                 <!-- Sección Mapa de Ruta -->
                 <div class="space-y-3 pdf-avoid-break">
                     <div class="flex items-center justify-between border-b border-voyage-border pb-2">
-                        <h3 class="text-base font-bold text-voyage-teal flex items-center gap-2 font-serif-title">
-                            <i class="fa-solid fa-map text-voyage-sage"></i> Mapa del Destino y Ruta Programada
-                        </h3>
-                        <img src="assets/ELEMENTOS-MARCA-03.png" class="h-8 w-auto object-contain" onerror="this.style.display='none'">
+        <h3 class="text-base font-bold text-voyage-teal flex items-center gap-2 font-serif-title">
+            <i class="fa-solid fa-map text-voyage-sage"></i> Mapa del Destino y Ruta Programada
+        </h3>
+        <img src="assets/ELEMENTOS-MARCA-03.png" class="h-8 w-auto object-contain" onerror="this.style.display='none'">
                     </div>
                     <div id="mapClientView" class="border border-voyage-border shadow-sm rounded-xl overflow-hidden"></div>
                     <div id="cv-map-legend" class="flex flex-wrap items-center gap-2 pt-1 text-xs"></div>
                 </div>
 
-                <!-- Contenedores dinámicos (Header + Primer elemento unidos en render) -->
-                <div id="cv-vuelos-container" class="space-y-3"></div>
+                <!-- NUEVO CONTENEDOR PARA DESTINOS (IMÁGENES Y DESCRIPCIÓN) -->
+                <div id="cv-destinos-container" class="space-y-3 pt-4"></div>
+
+                <!-- Hospedaje Seleccionado (Por propiedad / destino) -->
                 <div id="cv-hospedaje-container" class="space-y-3"></div>
+
+                <!-- Hospedaje Seleccionado (Por propiedad / destino) -->
+                <div id="cv-hospedaje-container" class="space-y-3"></div>
+
+                <!-- Itinerario de Experiencias y Actividades -->
                 <div id="cv-itinerario-container" class="space-y-4"></div>
 
                 <!-- Inclusiones y Políticas -->
@@ -508,9 +515,12 @@
                     </div>
                 </div>
 
-                <!-- Cierre con Ilustración de Viajera y Eslogan -->
+                <!-- ANEXO: ITINERARIO DE VUELOS POR PASAJERO (Al final, sin costos) -->
+                <div id="cv-vuelos-container" class="space-y-3 pt-6 border-t-2 border-dashed border-voyage-sand"></div>
+
+                <!-- Cierre e Ilustración de Pagos -->
                 <div class="pt-6 border-t border-voyage-border text-center text-xs text-slate-600 space-y-2 relative pdf-avoid-break">
-                    <img src="assets/datos_pago_50_mundos.jpeg" class="mx-auto h-40 w-auto object-contain" onerror="this.style.display='none'">
+                    <img src="assets/datos_pago_50_mundos-removebg.png" class="mx-auto h-80 w-auto object-contain" onerror="this.style.display='none'">
                 </div>
             </div>
         </section>

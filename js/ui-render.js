@@ -489,54 +489,48 @@ function updateClientProposalView() {
 
     // Render Anexo: Vuelos por Pasajero 
     const vuelosContainer = document.getElementById('cv-vuelos-container');
+    // En js/ui-render.js, dentro de updateClientProposalView(), reemplaza el renderizado de vuelos por:
     if (vuelosContainer) {
-        const vuelos = travelData.vuelos || [];
-        if (vuelos.length === 0) {
-            vuelosContainer.innerHTML = '';
-        } else {
-            const headerHtml = `
-                <div class="flex items-center justify-between border-b border-voyage-border pb-2">
-                    <h3 class="text-base font-bold text-voyage-teal flex items-center gap-2 font-serif-title">
-                        <i class="fa-solid fa-paperclip text-voyage-terracotta"></i> ANEXO: Itinerario de vuelos por pasajero
-                    </h3>
-                    <img src="assets/ELEMENTOS-MARCA-06.png" class="h-8 w-auto object-contain" onerror="this.style.display='none'">
+    const vuelos = travelData.vuelos || [];
+    if (vuelos.length === 0) {
+        vuelosContainer.innerHTML = '';
+    } else {
+        const headerHtml = `
+            <div class="flex items-center justify-between border-b border-voyage-border pb-2 pdf-avoid-break">
+                <h3 class="text-base font-bold text-voyage-teal flex items-center gap-2 font-serif-title">
+                    <i class="fa-solid fa-paperclip text-voyage-terracotta"></i> ANEXO: Itinerario de vuelos por pasajero
+                </h3>
+                <img src="assets/ELEMENTOS-MARCA-06.png" class="h-8 w-auto object-contain" onerror="this.style.display='none'">
+            </div>
+        `;
+
+        const cardsHtml = vuelos.map((v) => {
+            const transporteTexto = (v.medioTransporte || v.empresa) ? `${v.medioTransporte || ''} ${v.empresa || ''}`.trim() : '';
+            const transporteTag = transporteTexto ? `<span class="bg-voyage-teal text-white text-[10px] font-bold px-2 py-0.5 rounded">${transporteTexto}</span>` : '';
+            const redondoTag = v.redondo ? `<span class="text-slate-500 text-[11px]">(${v.redondo === 'Sí' ? 'Viaje Redondo' : 'Sencillo'})</span>` : '';
+            const terminalText = v.terminal ? `<b>Terminal:</b> ${v.terminal} | ` : '';
+            const salidaText = (v.fechaDespegue || v.horaDespegue) ? `<i class="fa-solid fa-plane-departure text-voyage-terracotta mr-1"></i><b>Salida:</b> ${v.fechaDespegue || ''} ${v.horaDespegue || ''} ` : '';
+            const llegadaText = (v.fechaAterrizaje || v.horaAterrizaje) ? `<i class="fa-solid fa-plane-arrival text-voyage-sage ml-2 mr-1"></i><b>Llegada:</b> ${v.fechaAterrizaje || ''} ${v.horaAterrizaje || ''}` : '';
+            const equipajeText = v.equipaje ? `<p class="text-slate-500 text-[11px]">Equipaje: ${v.equipaje} ${v.escalas ? '| Escalas: ' + v.escalas : ''}</p>` : '';
+
+            return `
+                <div class="pdf-avoid-break bg-voyage-cream border border-voyage-border rounded-xl p-3.5 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 shadow-xs">
+                    <div class="space-y-1">
+                        <div class="flex items-center gap-2 flex-wrap">
+                            ${transporteTag}
+                            <span class="font-bold text-voyage-teal text-sm">${v.salida || ''} ➔ ${v.destino || ''}</span>
+                            ${redondoTag}
+                        </div>
+                        <p class="text-slate-700 text-[11px]">${terminalText}Pasajero: <b>${v.pasajero || ''}</b></p>
+                        <p class="text-slate-600 text-[11px]">${salidaText}${llegadaText}</p>
+                        ${equipajeText}
+                    </div>
                 </div>
             `;
+        }).join('');
 
-            const cardsHtml = vuelos.map((v, idx) => {
-                const transporteTexto = (v.medioTransporte || v.empresa) ? `${v.medioTransporte || ''} ${v.empresa || ''}`.trim() : '';
-                const transporteTag = transporteTexto ? `<span class="bg-voyage-teal text-white text-[10px] font-bold px-2 py-0.5 rounded">${transporteTexto}</span>` : '';
-                const redondoTag = v.redondo ? `<span class="text-slate-500 text-[11px]">(${v.redondo === 'Sí' ? 'Viaje Redondo' : 'Sencillo'})</span>` : '';
-                const terminalText = v.terminal ? `<b>Terminal:</b> ${v.terminal} | ` : '';
-                const salidaText = (v.fechaDespegue || v.horaDespegue) ? `<i class="fa-solid fa-plane-departure text-voyage-terracotta mr-1"></i><b>Salida:</b> ${v.fechaDespegue || ''} ${v.horaDespegue || ''} ` : '';
-                const llegadaText = (v.fechaAterrizaje || v.horaAterrizaje) ? `<i class="fa-solid fa-plane-arrival text-voyage-sage ml-2 mr-1"></i><b>Llegada:</b> ${v.fechaAterrizaje || ''} ${v.horaAterrizaje || ''}` : '';
-                const equipajeText = v.equipaje ? `<p class="text-slate-500 text-[11px]">Equipaje: ${v.equipaje} ${v.escalas ? '| Escalas: ' + v.escalas : ''}</p>` : '';
-
-                const cardContent = `
-                    <div class="bg-voyage-cream border border-voyage-border rounded-xl p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 shadow-xs">
-                        <div class="space-y-1">
-                            <div class="flex items-center gap-2 flex-wrap">
-                                ${transporteTag}
-                                <span class="font-bold text-voyage-teal text-sm">${v.salida || ''} ➔ ${v.destino || ''}</span>
-                                ${redondoTag}
-                            </div>
-                            <p class="text-slate-700 text-[11px]">
-                                ${terminalText}Pasajero: <b>${v.pasajero || ''}</b>
-                            </p>
-                            <p class="text-slate-600 text-[11px]">
-                                ${salidaText}
-                                ${llegadaText}
-                            </p>
-                            ${equipajeText}
-                        </div>
-                    </div>
-                `;
-
-                return idx === 0 ? `<div class="pdf-avoid-break space-y-3">${headerHtml}${cardContent}</div>` : `<div class="pdf-avoid-break">${cardContent}</div>`;
-            }).join('');
-
-            vuelosContainer.innerHTML = cardsHtml;
-        }
+        vuelosContainer.innerHTML = `<div class="space-y-3">${headerHtml}${cardsHtml}</div>`;
+    }
     }
 }
 function updateDestinoDescription(itemName, text) {

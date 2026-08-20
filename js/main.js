@@ -40,7 +40,6 @@ async function downloadPDF() {
     const element = document.getElementById('clientViewContainer');
     if (!element) return;
 
-    // Guardar referencia del nodo en el DOM para devolverlo tras la captura
     const parent = element.parentNode;
     const nextSibling = element.nextSibling;
     const originalStyle = element.getAttribute('style') || '';
@@ -58,7 +57,7 @@ async function downloadPDF() {
         if (typeof updateClientProposalView === 'function') updateClientProposalView();
         window.scrollTo(0, 0);
 
-        // 2. Contenedor temporal aislado en (0,0) con ABSOLUTE (no fixed) para evitar páginas en blanco
+        // 2. Contenedor temporal aislado sin desbordamiento
         containerWrapper = document.createElement('div');
         containerWrapper.id = 'pdf-render-container';
         containerWrapper.style.cssText = `
@@ -71,26 +70,29 @@ async function downloadPDF() {
             margin: 0 !important;
             padding: 0 !important;
             box-sizing: border-box !important;
+            overflow: visible !important;
         `;
 
-        // 3. Estilos del documento ajustados a 750px exactos con padding equilibrado
+        // 3. Quitar 'overflow: hidden' para que la tarjeta de pago no se corte al final
         element.style.cssText = `
             width: 750px !important;
             max-width: 750px !important;
             min-width: 750px !important;
             margin: 0 !important;
-            padding: 24px !important;
+            padding: 24px 24px 36px 24px !important;
             box-sizing: border-box !important;
             background-color: #FAF8F5 !important;
             box-shadow: none !important;
             border-radius: 0 !important;
             transform: none !important;
+            overflow: visible !important;
+            height: auto !important;
         `;
 
         containerWrapper.appendChild(element);
         document.body.appendChild(containerWrapper);
 
-        // 4. Redimensionar el mapa de Leaflet exactamente al ancho de 750px
+        // 4. Adaptar el mapa de Leaflet
         if (typeof renderClientMapView === 'function') await renderClientMapView();
         if (typeof mapClientViewObj !== 'undefined' && mapClientViewObj) {
             mapClientViewObj.invalidateSize();
@@ -103,11 +105,14 @@ async function downloadPDF() {
 
         await new Promise(r => setTimeout(r, 300));
 
+        // Medir la altura completa real del documento desplegado
+        const fullHeight = Math.max(element.scrollHeight, element.offsetHeight);
+
         const clientNameEl = document.getElementById('cv-client-name');
         let clientName = clientNameEl && clientNameEl.innerText ? clientNameEl.innerText.trim() : 'Cliente';
         clientName = clientName.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_");
 
-        // 5. Opciones con 6mm de margen A4 para no cortar bordes ni sombras derechas
+        // 5. Configurar html2canvas con la altura total exacta
         const opt = {
             margin:       [6, 6, 6, 6],
             filename:     `Cotizacion_50Mundos_${clientName || 'Viaje'}.pdf`,
@@ -122,7 +127,9 @@ async function downloadPDF() {
                 x: 0,
                 y: 0,
                 width: 750,
+                height: fullHeight,
                 windowWidth: 750,
+                windowHeight: fullHeight,
                 backgroundColor: '#FAF8F5'
             },
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
@@ -132,19 +139,16 @@ async function downloadPDF() {
             }
         };
 
-        // Se envía 'element' directamente a html2pdf
         await html2pdf().set(opt).from(element).save();
 
     } catch (err) {
         console.error("Error generando PDF:", err);
         window.print();
     } finally {
-        // 6. Restaurar mapa interactivo
         if (typeof restoreMapAfterCapture === 'function') {
             restoreMapAfterCapture(staticMapWrapper);
         }
 
-        // Restaurar estilos y posición original del elemento en el sitio
         if (originalStyle) {
             element.setAttribute('style', originalStyle);
         } else {

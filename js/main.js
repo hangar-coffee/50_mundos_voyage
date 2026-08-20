@@ -52,12 +52,12 @@ async function downloadPDF() {
         if (mainBtn) mainBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Generando...';
         if (tabBtn) tabBtn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Generando...';
 
-        // 1. Activar pestaña cliente y resetear scroll
+        // 1. Activar pestaña de cliente y resetear scroll
         switchTab('client');
         if (typeof updateClientProposalView === 'function') updateClientProposalView();
         window.scrollTo(0, 0);
 
-        // 2. Contenedor temporal aislado sin desbordamiento
+        // 2. Crear contenedor temporal aislado anclado a (0,0)
         containerWrapper = document.createElement('div');
         containerWrapper.id = 'pdf-render-container';
         containerWrapper.style.cssText = `
@@ -73,13 +73,13 @@ async function downloadPDF() {
             overflow: visible !important;
         `;
 
-        // 3. Quitar 'overflow: hidden' para que la tarjeta de pago no se corte al final
+        // 3. Estilos con padding inferior de 60px para que la tarjeta de BBVA nunca se corte
         element.style.cssText = `
             width: 750px !important;
             max-width: 750px !important;
             min-width: 750px !important;
             margin: 0 !important;
-            padding: 24px 24px 36px 24px !important;
+            padding: 24px 24px 60px 24px !important;
             box-sizing: border-box !important;
             background-color: #FAF8F5 !important;
             box-shadow: none !important;
@@ -92,27 +92,35 @@ async function downloadPDF() {
         containerWrapper.appendChild(element);
         document.body.appendChild(containerWrapper);
 
-        // 4. Adaptar el mapa de Leaflet
+        // 4. Adaptar el mapa interactivo de Leaflet
         if (typeof renderClientMapView === 'function') await renderClientMapView();
         if (typeof mapClientViewObj !== 'undefined' && mapClientViewObj) {
             mapClientViewObj.invalidateSize();
         }
-        await new Promise(r => setTimeout(r, 400));
+        await new Promise(r => setTimeout(r, 300));
 
         if (typeof prepareMapForCapture === 'function') {
             staticMapWrapper = prepareMapForCapture();
         }
 
-        await new Promise(r => setTimeout(r, 300));
+        // 5. Precarga individual de imágenes (evita bloqueos o imágenes vacías)
+        const images = Array.from(element.querySelectorAll('img'));
+        await Promise.all(images.map(img => {
+            if (img.complete && img.naturalHeight > 0) return Promise.resolve();
+            return new Promise(resolve => {
+                img.onload = resolve;
+                img.onerror = resolve;
+                setTimeout(resolve, 2000); // Tiempo límite por imagen
+            });
+        }));
 
-        // Medir la altura completa real del documento desplegado
-        const fullHeight = Math.max(element.scrollHeight, element.offsetHeight);
+        await new Promise(r => setTimeout(r, 200));
 
         const clientNameEl = document.getElementById('cv-client-name');
         let clientName = clientNameEl && clientNameEl.innerText ? clientNameEl.innerText.trim() : 'Cliente';
         clientName = clientName.replace(/[^a-zA-Z0-9 ]/g, "").replace(/\s+/g, "_");
 
-        // 5. Configurar html2canvas con la altura total exacta
+        // 6. Generar PDF
         const opt = {
             margin:       [6, 6, 6, 6],
             filename:     `Cotizacion_50Mundos_${clientName || 'Viaje'}.pdf`,
@@ -127,9 +135,7 @@ async function downloadPDF() {
                 x: 0,
                 y: 0,
                 width: 750,
-                height: fullHeight,
                 windowWidth: 750,
-                windowHeight: fullHeight,
                 backgroundColor: '#FAF8F5'
             },
             jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },

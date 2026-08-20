@@ -349,7 +349,7 @@ function updateClientProposalView() {
         document.getElementById('cv-total-days').innerText = totalDays > 0 ? `${totalDays} Días / ${Math.max(0, totalDays - 1)} Noches` : '';
     }
 
-    // Gran Total del Viaje (Único precio mostrado)
+    // Gran Total del Viaje
     let grandTotal = 0;
     const sumCost = (item) => { grandTotal += Number(item.precioCliente || 0); };
 
@@ -363,7 +363,7 @@ function updateClientProposalView() {
         `;
     }
 
-    // Render Hospedaje por Destino (un hotel por destino, sin precios desglosados)
+    // Render Hospedaje por Destino (Optimizado para móvil sin deformar imágenes)
     const hospedajeContainer = document.getElementById('cv-hospedaje-container');
     if (hospedajeContainer) {
         const hospedajeRaw = travelData.hospedaje || [];
@@ -403,18 +403,19 @@ function updateClientProposalView() {
 
             const cardsHtml = hospedajeGrouped.map((h, idx) => {
                 const photo = (travelData.hotelPhotos && travelData.hotelPhotos[h.hotel]) || (travelData.destinoPhotos && travelData.destinoPhotos[h.destino]) || '';
-                const imgHtml = photo ? `<img src="${photo}" class="w-full sm:w-44 h-32 object-cover flex-shrink-0">` : '';
+                // IMAGEN OPTIMIZADA AQUÍ
+                const imgHtml = photo ? `<img src="${photo}" class="w-full sm:w-44 h-48 sm:h-auto object-cover object-center flex-shrink-0 rounded-t-xl sm:rounded-tr-none sm:rounded-l-xl">` : '';
 
                 const cardContent = `
                     <div class="bg-voyage-cream border border-voyage-border rounded-xl overflow-hidden flex flex-col sm:flex-row shadow-xs">
                         ${imgHtml}
                         <div class="p-3.5 flex-1 flex flex-col justify-between space-y-1">
                             <div>
-                                <div class="flex items-center justify-between">
+                                <div class="flex items-center justify-between gap-2">
                                     <h4 class="font-bold text-voyage-teal text-sm font-serif-title flex items-center gap-1.5">
                                         <i class="fa-solid fa-hotel text-voyage-sage"></i> ${h.hotel || ''}
                                     </h4>
-                                    ${h.destino ? `<span class="bg-voyage-paper text-voyage-teal text-[10px] font-bold px-2 py-0.5 rounded border border-voyage-border">${h.destino}</span>` : ''}
+                                    ${h.destino ? `<span class="bg-voyage-paper text-voyage-teal text-[10px] font-bold px-2 py-0.5 rounded border border-voyage-border shrink-0">${h.destino}</span>` : ''}
                                 </div>
                                 <p class="text-slate-700 text-[11px] mt-1">
                                     Check-in: <b>${h.checkIn || ''}</b> | Check-out: <b>${h.checkOut || ''}</b> ${h.noches ? `(${h.noches} Noches)` : ''}
@@ -436,7 +437,8 @@ function updateClientProposalView() {
             hospedajeContainer.innerHTML = cardsHtml;
         }
     }
-    // Render Destinos en Cotización Final (Imagen + Descripción)
+
+    // Render Destinos (Optimizado para móvil sin deformar imágenes)
     const destinosContainer = document.getElementById('cv-destinos-container');
     if (destinosContainer) {
         const allUniqueDestinations = getAllUniqueDestinations();
@@ -457,11 +459,11 @@ function updateClientProposalView() {
                 const photo = (travelData.destinoPhotos && travelData.destinoPhotos[dest]) ? travelData.destinoPhotos[dest] : '';
                 const desc = (travelData.destinoDescriptions && travelData.destinoDescriptions[dest]) ? travelData.destinoDescriptions[dest] : '';
                 
-                // Solo renderizar el destino si el usuario le agregó foto o descripción
                 if (!photo && !desc) return '';
                 hasContent = true;
 
-                const imgHtml = photo ? `<img src="${photo}" class="w-full sm:w-1/3 md:w-48 h-36 object-cover flex-shrink-0">` : '';
+                // IMAGEN OPTIMIZADA AQUÍ
+                const imgHtml = photo ? `<img src="${photo}" class="w-full sm:w-1/3 md:w-48 h-48 sm:h-auto object-cover object-center flex-shrink-0 rounded-t-xl sm:rounded-tr-none sm:rounded-l-xl">` : '';
                 
                 const cardContent = `
                     <div class="bg-voyage-cream border border-voyage-border rounded-xl overflow-hidden flex flex-col sm:flex-row shadow-xs mb-3">
@@ -482,10 +484,10 @@ function updateClientProposalView() {
         }
     }
 
-    // Render Itinerario (sin precios desglosados)
+    // Render Itinerario 
     renderItineraryByGroups();
 
-    // Render Anexo: Vuelos por Pasajero (en el anexo final, sin precios desglosados)
+    // Render Anexo: Vuelos por Pasajero 
     const vuelosContainer = document.getElementById('cv-vuelos-container');
     if (vuelosContainer) {
         const vuelos = travelData.vuelos || [];
@@ -495,7 +497,7 @@ function updateClientProposalView() {
             const headerHtml = `
                 <div class="flex items-center justify-between border-b border-voyage-border pb-2">
                     <h3 class="text-base font-bold text-voyage-teal flex items-center gap-2 font-serif-title">
-                        <i class="fa-solid fa-paperclip text-voyage-terracotta"></i> ANEXO: Itinerario de viajes por Pasajero a destinos
+                        <i class="fa-solid fa-paperclip text-voyage-terracotta"></i> ANEXO: Itinerario de vuelos por pasajero
                     </h3>
                     <img src="assets/ELEMENTOS-MARCA-06.png" class="h-8 w-auto object-contain" onerror="this.style.display='none'">
                 </div>
@@ -689,7 +691,8 @@ function renderItineraryByGroups() {
 
         const activitiesHtml = groupActivities.length > 0 ? groupActivities.map((a) => {
             const photo = (travelData.activityPhotos && travelData.activityPhotos[a.actividad]) ? travelData.activityPhotos[a.actividad] : '';
-            const imgHtml = photo ? `<img src="${photo}" class="w-full sm:w-44 h-32 object-cover flex-shrink-0">` : '';
+            // IMAGEN OPTIMIZADA AQUÍ
+            const imgHtml = photo ? `<img src="${photo}" class="w-full sm:w-44 h-48 sm:h-auto object-cover object-center flex-shrink-0 rounded-t-xl sm:rounded-tr-none sm:rounded-l-xl">` : '';
 
             let asignadosTexto = '';
             const assignedArray = Array.from(a.pasajerosSet);
@@ -714,9 +717,9 @@ function renderItineraryByGroups() {
                     ${imgHtml}
                     <div class="p-3.5 flex-1 flex flex-col justify-between space-y-2">
                         <div>
-                            <div class="flex items-center justify-between">
+                            <div class="flex items-center justify-between gap-2">
                                 <span class="text-voyage-terracotta font-bold text-[11px]"><i class="fa-regular fa-clock mr-1"></i>${a.fecha || ''} ${displayTime ? '- ' + displayTime : ''}</span>
-                                ${a.duracion ? `<span class="bg-voyage-cream text-voyage-teal text-[10px] px-2 py-0.5 rounded font-semibold border border-voyage-border">${a.duracion}</span>` : ''}
+                                ${a.duracion ? `<span class="bg-voyage-cream text-voyage-teal text-[10px] px-2 py-0.5 rounded font-semibold border border-voyage-border shrink-0">${a.duracion}</span>` : ''}
                             </div>
                             <h5 class="font-bold text-voyage-teal text-sm mt-1 font-serif-title">${a.actividad || ''}</h5>
                             <p class="text-slate-600 text-[11px] mt-1"><i class="fa-solid fa-users text-voyage-terracotta mr-1"></i> Asignados: <b>${asignadosTexto}</b></p>

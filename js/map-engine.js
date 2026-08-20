@@ -314,3 +314,9 @@ function restoreMapAfterCapture(wrapper) {
         }
     }
 }
+// Recalcular tamaño de los mapas al redimensionar la pantalla o rotar el celular
+window.addEventListener('resize', () => {
+    if (typeof mapDestinosObj !== 'undefined' && mapDestinosObj) mapDestinosObj.invalidateSize();
+    if (typeof mapRutaObj !== 'undefined' && mapRutaObj) mapRutaObj.invalidateSize();
+    if (typeof mapClientViewObj !== 'undefined' && mapClientViewObj) mapClientViewObj.invalidateSize();
+});

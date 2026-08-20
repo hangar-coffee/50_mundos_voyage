@@ -575,9 +575,10 @@
                 <div id="cv-vuelos-container" class="space-y-3 pt-6 border-t-2 border-dashed border-voyage-sand"></div>
 
                 <!-- Cierre e Ilustración de Pagos -->
-                <div class="pt-6 border-t border-voyage-border text-center text-xs text-slate-600 space-y-2 relative pdf-avoid-break">
-                    <img src="assets/datos_pago_50_mundos-removebg.png" class="mx-auto h-80 w-auto object-contain" onerror="this.style.display='none'">
-                </div>
+                <!-- Cierre e Ilustración de Pagos -->
+                <div class="pt-6 border-t border-voyage-border text-center text-xs text-slate-600 space-y-2 relative pdf-avoid-break" style="page-break-inside: avoid !important; break-inside: avoid !important;">
+                <img src="assets/datos_pago_50_mundos-removebg.png" class="mx-auto" style="max-height: 180px !important; width: auto !important; height: auto !important; object-fit: contain !important; display: block; margin: 0 auto;" onerror="this.style.display='none'">
+             </div>
             </div>
         </section>
     </main>

@@ -70,8 +70,8 @@
         #mapClientView,
         #mapDestinos,
         #mapRuta {
-            height: 210px !important;
-            max-height: 220px !important;
+            height: 232px !important;
+            max-height: 350px !important;
             width: 100% !important;
             border-radius: 12px;
             overflow: hidden;
@@ -81,11 +81,67 @@
             #mapClientView,
             #mapDestinos,
             #mapRuta {
-                height: 200px !important;
+                height: 320px !important;
                 break-inside: avoid !important;
                 page-break-inside: avoid !important;
             }
         }
+    </style>
+    <!-- Agrega este estilo CSS dentro de tu <head> en index.html -->
+    <style>
+    /* Evita deformación global de imágenes */
+    img {
+        max-width: 100%;
+        object-fit: cover;
+    }
+
+    /* Ocultar barra de desplazamiento en la navegación móvil manteniendo el scroll táctil */
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+
+    /* Regla estricta para evitar que elementos individuales se corten entre páginas al exportar PDF */
+    .pdf-avoid-break,
+    #mapClientView,
+    #mapStaticWrapper {
+        break-inside: avoid !important;
+        page-break-inside: avoid !important;
+        -webkit-column-break-inside: avoid !important;
+    }
+
+    #clientViewContainer h3,
+    #clientViewContainer h4,
+    #clientViewContainer h5,
+    #clientViewContainer .border-b,
+    #clientViewContainer .border-b-2 {
+        break-after: avoid !important;
+        page-break-after: avoid !important;
+    }
+
+    /* Altura adaptativa para mapas en celular y escritorio */
+    #mapClientView,
+    #mapDestinos,
+    #mapRuta {
+        height: 220px !important;
+        max-height: 250px !important;
+        width: 100% !important;
+        border-radius: 12px;
+        overflow: hidden;
+    }
+
+    @media print {
+        #mapClientView,
+        #mapDestinos,
+        #mapRuta {
+            height: 200px !important;
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
+        }
+    }
     </style>
 </head>
 
